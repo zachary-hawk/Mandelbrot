@@ -1,17 +1,22 @@
-Author
------
+AUTHOR
+------
 Z.Hawkhead
 
 
-Mandelbrot
+MANDELBROT
 ----------
 
 Parallel code for producing the Mandelbrot set.
 
 
-Install
--------
+PREREQUISITS
+------------
 
+This project is written in FORTRAN90. A fortran compiler is required, either gfortran or ifort (version 18 or above). This project is a parallel code using MPI, so a fully compiled version of the MPI libraries is requires for successful install.
+
+
+INSTALL
+-------
 Install using "make"
 
 
