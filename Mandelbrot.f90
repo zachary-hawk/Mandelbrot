@@ -1,3 +1,6 @@
+!--------------------------------!
+! Author Z.Hawkhead              !
+!--------------------------------!
 program Mandelbrot
   !use MPI 
   use files
