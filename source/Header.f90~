@@ -34,7 +34,7 @@ contains
 #endif
 
     if (len(arch).eq.0)then 
-       print*,"Could not determine system"
+       arch_string="Could not determine system"
     end if
 
 
