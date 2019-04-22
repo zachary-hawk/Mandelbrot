@@ -340,8 +340,14 @@ program Mandelbrot
      write(1,2) "No. Iteration:",trim(max_char)
 2    format(1x,A,37x,A)
      if (lookfor_j)then
-        write(1,77)"Value of c:",z_re,"+",z_im,"i"
+        if (z_im.gt.0)then
+           write(1,77)"Value of c:",z_re,"+",z_im,"i"
+        else
+           write(1,78)"Value of c:",z_re,z_im,"i"
+        end if
 77      format(1x,A,34x,f5.3,A,f5.3,A)
+78      format(1x,A,34x,f5.3,f5.3,A)
+
      end if
      write(1,*)    
      write(1,75) lower_X,upper_X
@@ -495,7 +501,7 @@ program Mandelbrot
      !**********FOLLOWING LINES FOR PARALLEL EFFICIENCY TESTING*************
      if (lookfor_eff)then
         open(unit=3,file="efficiency.mand",form="formatted",status="unknown",access="append")
-        write(3,*)nprocs,inp_fn-inp_st,N
+        write(3,*)nprocs,inp_fn-inp_st,"#N=",N
         close(3)
         write(1,*) "Efficiency data writen to file 'efficiency.mand'"
      end if
