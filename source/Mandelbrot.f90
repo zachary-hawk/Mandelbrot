@@ -238,13 +238,18 @@ program Mandelbrot
   read(z_im_char,*)z_im
 
   if (lookfor_j.eqv..TRUE. .and. lookfor_lx.eqv..FALSE.)then 
-     lower_x=-1.5
+     lower_x=-2.
   end if
   if (lookfor_j.eqv..TRUE..and. lookfor_ux.eqv..FALSE.)then
-     upper_x=1.5
+     upper_x=2.
   end if
-
-
+  if (lookfor_j.eqv..TRUE..and. lookfor_uy.eqv..FALSE.)then
+     upper_y=2.
+  end if
+  if (lookfor_j.eqv..TRUE. .and. lookfor_ly.eqv..FALSE.)then
+     lower_y=-2.
+  end if
+  
   ! Check for clear command
   if(lookfor_c) then
      write(*,*) "Previous results may be deleted. Proceed anyway? y/n"
