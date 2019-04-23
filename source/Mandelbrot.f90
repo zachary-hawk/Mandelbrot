@@ -171,6 +171,10 @@ program Mandelbrot
            lookfor_c=.FALSE.
            lookfor_j=.TRUE.
            !Default case, handels inputs
+           lower_x=-2.
+           lower_y=-2.
+           upper_x=2.
+           upper_y=2.
         case default
            if (lookfor_N) then
               name=adjustl(name)
@@ -208,7 +212,7 @@ program Mandelbrot
 
 
 
-
+  !  if (rank.eq.0)
 
 
   ! IDENTIFYING Z
@@ -219,13 +223,7 @@ program Mandelbrot
         exit
      end if
      if (i.eq.len(z_char))then
-        if (rank.eq.0)then 
-           open(20,file="err.mand",status="unknown",access="append")
-           write(*,*) "Error"
-           write(20,*) "Error: Julia constant improperly formatted"
-           close(20)
-           stop
-        end if
+           call errors(rank,"Julia constant improperly formatted")
      end if
   end do
 
@@ -237,19 +235,19 @@ program Mandelbrot
   read(z_re_char,*)z_re
   read(z_im_char,*)z_im
 
-  if (lookfor_j.eqv..TRUE. .and. lookfor_lx.eqv..FALSE.)then 
-     lower_x=-2.
-  end if
-  if (lookfor_j.eqv..TRUE..and. lookfor_ux.eqv..FALSE.)then
-     upper_x=2.
-  end if
-  if (lookfor_j.eqv..TRUE..and. lookfor_uy.eqv..FALSE.)then
-     upper_y=2.
-  end if
-  if (lookfor_j.eqv..TRUE. .and. lookfor_ly.eqv..FALSE.)then
-     lower_y=-2.
-  end if
-  
+  !  if (lookfor_j.eqv..TRUE. .and. lookfor_lx.eqv..FALSE.)then 
+  !     lower_x=-2.
+  !  end if
+  !  if (lookfor_j.eqv..TRUE..and. lookfor_ux.eqv..FALSE.)then
+  !     upper_x=2.
+  !  end if
+  !  if (lookfor_j.eqv..TRUE..and. lookfor_uy.eqv..FALSE.)then
+  !     upper_y=2.
+  !  end if
+  !  if (lookfor_j.eqv..TRUE. .and. lookfor_ly.eqv..FALSE.)then
+  !     lower_y=-2.
+  !  end if
+
   ! Check for clear command
   if(lookfor_c) then
      write(*,*) "Previous results may be deleted. Proceed anyway? y/n"
@@ -265,34 +263,21 @@ program Mandelbrot
 
   !ERROR HANDLING
 
-  if (rank.eq.0)then
 
-     if (upper_X-lower_X .lt. 0 .or.upper_Y-lower_Y .lt. 0) then 
-        open(20,file="err.mand",status="unknown",access="append")
-        write(*,*) "Error"
-        write(20,*) "Error: Extent definition ambiguous"
-        close(20)     
-        stop
-     else if (N.lt.0)then
-        open(20,file="err.mand",status="unknown",access="append")
-        write(*,*) "Error"
-        write(20,*) "Error: Grid size must be positve integer"
-        close(20)     
-        stop
-     else if (Max_iter.lt.0)then
-        open(20,file="err.mand",status="unknown",access="append")
-        write(*,*) "Error"
-        write(20,*) "Error: Max No. iterations must be positive integer"
-        close(20)
-        stop
-     else if (N.lt.nprocs**2)then
-        open(20,file="err.mand",status="unknown",access="append")
-        write(*,*) "Error"
-        write(20,*) "Error: Too few grid points for parallism "
-        close(20)
-        stop
-     end if
+
+  if (upper_X-lower_X .lt. 0 .or.upper_Y-lower_Y .lt. 0) then 
+     call errors(rank,"Extent definition ambiguous"  )
+  else if (N.lt.0)then
+
+     call errors(rank,"Grid size must be positve integer")
+  else if (Max_iter.lt.0)then
+
+     call errors(rank," Max No. iterations must be positive integer")
+
+  else if (N.lt.nprocs**2)then
+     call errors(rank,"Too few grid points for parallism ")
   end if
+
   !Ensure commensurate with cores 
   do while (mod(N,nprocs).gt.0)
      N=N+1
@@ -535,4 +520,18 @@ contains
     write(*,*) '-ly               Set lower limit in y direction'
     write(*,*) '-uy               Set upper limit in y direction'
   end subroutine print_help
-end program Mandelbrot
+
+  subroutine errors(rank,message)
+    implicit none
+    integer:: rank
+    character(*)::message
+
+    if (rank.eq.0)then
+       open(20,file="err.mand",status="unknown",access="append")
+       write(*,*) "Error"
+       write(20,*) "Error: ",trim(message)
+       close(20)
+       stop
+    end if
+  end subroutine errors
+end program

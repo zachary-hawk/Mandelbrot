@@ -8,38 +8,27 @@
  | Mandelbrot v.2.0, Z.Hawkhead                                                     |
  +==================================================================================+
 
- Compiled with GNU Fortran 7.4.0 on Apr 22 2019 at 23:28:05
+ Compiled with GNU Fortran 7.4.0 on Apr 23 2019 at 11:50:07
  Compiled for system: Darwin_18.2.0_x86_64
 
- Calculation started:  Apr 22 2019 at 23:41:59.117
+ Calculation started:  Apr 23 2019 at 12:18:23.124
 
  Calculation Type:                                   Julia
- No. Grid points:                                    10000
- No. Iteration:                                        500
- Value of c:                                  0.355+0.355i
+ No. Grid points:                                     1000
+ No. Iteration:                                         50
+ Value of c:                                  -.100+0.100i
 
- Extent used: X:                                     -1.50      1.50
-              Y:                                     -1.25      1.25
+ Extent used: X:                                     -2.00      2.00
+              Y:                                     -2.00      2.00
 
- Calculated in Parallel
- No. Processes:                                          4
-
- Colouring by Processor:                               Off
+ Calculated in Serial
  Writing efficiency data:                              Off
  Writing data:                                          On
 
  Starting Calculation:
  ************************************************************************************
- Calculation 10% complete:                         3.73449 s
- Calculation 20% complete:                         7.68068 s
- Calculation 30% complete:                        10.91002 s
- Calculation 40% complete:                        13.50057 s
- Calculation 50% complete:                        16.44349 s
- Calculation 60% complete:                        20.04528 s
- Calculation 70% complete:                        23.99472 s
  ************************************************************************************
- Total Calculation Time:                          25.76315 s
+ Total Calculation Time:                           0.22010 s
  ************************************************************************************
 
- Parallel Effciency:                                 99.18 %
  Calculation written to file "data.mand"
