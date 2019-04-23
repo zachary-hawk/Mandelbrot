@@ -133,7 +133,7 @@ program Mandelbrot
            lookfor_ux=.FALSE.
            lookfor_ly=.FALSE.
            lookfor_uy=.TRUE.
-           lookfor_j=.FALSE.
+           !lookfor_j=.FALSE.
         case("-ly")
            lookfor_N=.FALSE.
            lookfor_MAX_ITER=.FALSE.
