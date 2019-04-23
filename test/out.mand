@@ -8,18 +8,17 @@
  | Mandelbrot v.2.0, Z.Hawkhead                                                     |
  +==================================================================================+
 
- Compiled with GNU Fortran 7.4.0 on Apr 23 2019 at 11:50:07
- Compiled for system: Darwin_18.2.0_x86_64
+ Compiled with GNU Fortran 7.4.0 on Apr 23 2019 at 19:15:36
+ Compiled for system: Unknown
 
- Calculation started:  Apr 23 2019 at 12:18:23.124
+ Calculation started:  Apr 23 2019 at 19:15:55.712
 
- Calculation Type:                                   Julia
+ Calculation Type:                              Mandelbrot
  No. Grid points:                                     1000
  No. Iteration:                                         50
- Value of c:                                  -.100+0.100i
 
- Extent used: X:                                     -2.00      2.00
-              Y:                                     -2.00      2.00
+ Extent used: X:                                     -2.00      0.50
+              Y:                                     -1.25      1.25
 
  Calculated in Serial
  Writing efficiency data:                              Off
@@ -28,7 +27,7 @@
  Starting Calculation:
  ************************************************************************************
  ************************************************************************************
- Total Calculation Time:                           0.22010 s
+ Total Calculation Time:                           0.34840 s
  ************************************************************************************
 
  Calculation written to file "data.mand"

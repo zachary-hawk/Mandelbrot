@@ -1,5 +1,7 @@
-
 VAR := $(shell . ./../bin/arch_finder)
+ifeq ($(strip $(VAR)),)
+VAR="'Unknown'"
+endif
 FC=mpif90
 FCFLAGS= -cpp -funroll-loops -D arch=$(VAR)
 BUILD_DIR ?= ./../build
