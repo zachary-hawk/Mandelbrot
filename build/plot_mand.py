@@ -9,13 +9,17 @@ import re
 
 
 start  = time.process_time()
-params = open("out.mand","r")
-params =  params.readlines()
-n=re.findall(r'\d+',params[16])
-n=int(n[0])
+#params = open("out.mand","r")
+#params =  params.readlines()
+#n=re.findall(r'\d+',params[16])
+#n=int(n[0])
+
 f = FortranFile("data.mand", "r")
 
-data = f.read_reals(np.float32).reshape((n,n))
+data = f.read_reals(np.float32)#.reshape((n,n))
+n=int(np.sqrt(len(data)))
+data=data.reshape((n,n))
+
 f.close()
 
 

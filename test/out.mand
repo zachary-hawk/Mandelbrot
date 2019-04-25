@@ -5,29 +5,27 @@
  | MM    MM AAAAAAA NN  NNN DD   DD EE      LL      BB   BB RR  RR  OO   OO   TTT   |
  | MM    MM AA   AA NN   NN DDDDDD  EEEEEEE LLLLLLL BBBBBB  RR   RR  OOOO0    TTT   |
  |                                                                                  |
- | Mandelbrot v.2.0, Z.Hawkhead                                                     |
+ | Mandelbrot v.2.1, Z.Hawkhead                                                     |
  +==================================================================================+
-
- Compiled with GNU Fortran 7.4.0 on Apr 23 2019 at 19:15:36
- Compiled for system: Unknown
-
- Calculation started:  Apr 23 2019 at 19:15:55.712
-
+ 
+ Compiled with Intel Compiler  19.0.3.199 on Apr 25 2019 at 10:08:21
+ Compiled for system: Darwin_18.2.0_x86_64
+ Communications architechture: Serial
+ 
+ Calculation started:  Apr 25 2019 at 10:08:42.583
+ 
  Calculation Type:                              Mandelbrot
  No. Grid points:                                     1000
  No. Iteration:                                         50
-
+ 
  Extent used: X:                                     -2.00      0.50
               Y:                                     -1.25      1.25
-
- Calculated in Serial
+ 
  Writing efficiency data:                              Off
  Writing data:                                          On
-
- Starting Calculation:
+ 
  ************************************************************************************
+ Total Calculation Time:                           0.08079 s
  ************************************************************************************
- Total Calculation Time:                           0.34840 s
- ************************************************************************************
-
+ 
  Calculation written to file "data.mand"

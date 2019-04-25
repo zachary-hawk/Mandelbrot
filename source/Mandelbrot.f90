@@ -1,5 +1,6 @@
 !--------------------------------!
 ! Author Z.Hawkhead              !
+! Master for MPI                 !
 !--------------------------------!
 program Mandelbrot
   !use MPI 
@@ -24,8 +25,8 @@ program Mandelbrot
   character::clear_check
   integer :: d_t(8)
   character*10 :: b(3)
-  character(len=100)::version, compiler,arch_string, DATE,TIME
-  character(len=81)::parser_version="Mandelbrot v.2.0, Z.Hawkhead"
+  character(len=100)::version, compiler,arch_string, DATE,TIME,comms="MPI"
+  character(len=81)::parser_version="Mandelbrot v.2.1, Z.Hawkhead"
   character(len=100)::info="Parallel code for calculating the Mandelbrot Set"
   character(len=15)::N_character,max_char
   real::eff,z_im=0.,z_re=0.
@@ -310,7 +311,7 @@ program Mandelbrot
         open(unit=2,file="data.mand",form="UNFORMATTED")
      end if
      open(unit=1,file="out.mand",RECL=8192)
-     call header(1,parser_version,arch_string)
+     call header(1,parser_version,arch_string,comms)
 
      write(1,1000) months(d_t(2)),d_t(3),d_t(1),d_t(5),d_t(6),d_t(7),d_t(8)
 1000 format (' Calculation started:  ', A, 1x, i2.2, 1x, i4.4, ' at ',i2.2, ':', i2.2, ':', i2.2 ,".",i3.3)

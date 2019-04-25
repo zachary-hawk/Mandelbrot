@@ -6,12 +6,12 @@ module files
 implicit none
 
 contains
-  subroutine header(file,parser_version,arch_string)
+  subroutine header(file,parser_version,arch_string,comms)
     use ISO_FORTRAN_ENV
     implicit none
     integer::file
     character(81)::parser_version
-    character(100)::DATE,TIME,compiler,arch_string,version
+    character(100)::DATE,TIME,compiler,arch_string,version,comms
 
 
 #ifdef __INTEL_COMPILER
@@ -50,6 +50,7 @@ contains
     write(file,*)
     write(file,*) "Compiled with ",compiler," ",Trim(version), " on ", __DATE__, " at ",__TIME__
     write(file,*) "Compiled for system: ",trim(arch_string)
+    write(file,*) "Communications architechture: ",trim(comms)
     write(file,*)
   end subroutine header
 
