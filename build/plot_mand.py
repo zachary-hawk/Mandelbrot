@@ -45,7 +45,7 @@ if len(sys.argv)>1:
 
     if len(c)>2:
         i=cmaps.index(c)
-        print(i)
+        
         color=cmaps[i]
     else:
         i=np.int(c)
