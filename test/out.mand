@@ -7,26 +7,29 @@
  |                                                                                  |
  | Mandelbrot v.2.1, Z.Hawkhead                                                     |
  +==================================================================================+
- 
- Compiled with Intel Compiler  19.0.3.199 on Apr 25 2019 at 10:08:21
+
+ Compiled with GNU Fortran 7.4.0 on Apr 26 2019 at 19:23:45
  Compiled for system: Darwin_18.2.0_x86_64
- Communications architechture: Serial
- 
- Calculation started:  Apr 26 2019 at 12:07:37.981
- 
- Calculation Type:                                   Julia
+ Communications architechture: MPI
+
+ Calculation started:  Apr 26 2019 at 19:28:29.013
+
+ Calculation Type:                              Mandelbrot
  No. Grid points:                                     1000
- No. Iteration:                                        150
- Value of c:                                  -.540+0.540i
- 
- Extent used: X:                                     -1.25      1.25
+ No. Iteration:                                         50
+
+ Extent used: X:                                     -2.00      0.50
               Y:                                     -1.25      1.25
- 
- Writing efficiency data:                              Off
+
+ Calculated in Serial
+ Writing efficiency data:                               On
  Writing data:                                          On
- 
+
+ Starting Calculation:
  ************************************************************************************
- Total Calculation Time:                           0.11902 s
  ************************************************************************************
- 
+ Total Calculation Time:                           0.42003 s
+ ************************************************************************************
+
+ Efficiency data writen to file 'efficiency.mand'
  Calculation written to file "data.mand"

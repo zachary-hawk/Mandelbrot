@@ -201,8 +201,8 @@ program Mandelbrot
 
 
            else
-              write(*,34)"Undefined Flag:", name
-34            format(1x,A,1x,A)
+              write(*,33)"Undefined Flag:", name
+33            format(1x,A,1x,A)
               call print_help()
               stop
            end if
@@ -492,7 +492,7 @@ program Mandelbrot
      !**********FOLLOWING LINES FOR PARALLEL EFFICIENCY TESTING*************
      if (lookfor_eff)then
         open(unit=3,file="efficiency.mand",form="formatted",status="unknown",access="append")
-        write(3,*)nprocs,inp_fn-inp_st,"#N=",N
+        write(3,*)nprocs,inp_fn-inp_st,"#N=",N," MPI"
         close(3)
         write(1,*) "Efficiency data writen to file 'efficiency.mand'"
      end if
@@ -500,8 +500,7 @@ program Mandelbrot
         write(1,*)'Calculation written to file "data.mand"'
      end if
 
-     write(1,4) 
-!4    format(1x,"mpirun -n ",i2," mandelbrot.mpi -n ",i8, " -i  ", i5,"   "  
+
 
   end if
   close(1)

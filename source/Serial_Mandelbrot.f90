@@ -415,7 +415,7 @@ call CPU_TIME(finish)
      !**********FOLLOWING LINES FOR PARALLEL EFFICIENCY TESTING*************
      if (lookfor_eff)then
         open(unit=3,file="efficiency.mand",form="formatted",status="unknown",access="append")
-        write(3,*)nprocs,inp_fn-inp_st,"#N=",N
+        write(3,*)nprocs,inp_fn-inp_st,"#N=",N, " Serial"
         close(3)
         write(1,*) "Efficiency data writen to file 'efficiency.mand'"
      end if
