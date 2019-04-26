@@ -12,20 +12,21 @@
  Compiled for system: Darwin_18.2.0_x86_64
  Communications architechture: Serial
  
- Calculation started:  Apr 25 2019 at 10:08:42.583
+ Calculation started:  Apr 26 2019 at 12:07:37.981
  
- Calculation Type:                              Mandelbrot
+ Calculation Type:                                   Julia
  No. Grid points:                                     1000
- No. Iteration:                                         50
+ No. Iteration:                                        150
+ Value of c:                                  -.540+0.540i
  
- Extent used: X:                                     -2.00      0.50
+ Extent used: X:                                     -1.25      1.25
               Y:                                     -1.25      1.25
  
  Writing efficiency data:                              Off
  Writing data:                                          On
  
  ************************************************************************************
- Total Calculation Time:                           0.08079 s
+ Total Calculation Time:                           0.11902 s
  ************************************************************************************
  
  Calculation written to file "data.mand"

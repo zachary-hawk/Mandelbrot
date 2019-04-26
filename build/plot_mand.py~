@@ -4,14 +4,8 @@ from scipy.io import FortranFile
 import matplotlib.pyplot as plt
 import sys
 
-def print_help():
 
 
-    print("Mandelbrot image generator, Author: Z.Hawkhead")
-    print()
-    print("Change image colourmap \nTakes matplotlib colormap string, or intger in range 0-79")
-    print()
-    
 cmaps = ['viridis', 'plasma', 'inferno', 'magma',
   
             'Greys', 'Purples', 'Blues', 'Greens', 'Oranges', 'Reds',
@@ -37,24 +31,20 @@ cmaps = ['viridis', 'plasma', 'inferno', 'magma',
 if len(sys.argv)>1:
     
     c=sys.argv[1]
-
-    if c=="-h":
-        print_help()
-        exit()
-
-
+    #i=np.int(sys.argv[1])
     if len(c)>2:
-        i=cmaps.index(c)
-        print(i)
-        color=cmaps[i]
+        i=np.where(cmaps==c)
     else:
         i=np.int(c)
-
+        #if i<len(cmaps)-1:
         color=cmaps[i]
+        
+    else:
+        color="cubehelix"
 else:
     color="cubehelix"
 
-print("Cmap used: ",color,"\nindex:",cmaps.index(color))
+print("Cmap used: ",color)
 
 f = FortranFile("data.mand", "r")
 

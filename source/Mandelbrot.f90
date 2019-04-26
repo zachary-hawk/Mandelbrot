@@ -224,7 +224,7 @@ program Mandelbrot
         exit
      end if
      if (i.eq.len(z_char))then
-           call errors(rank,"Julia constant improperly formatted")
+        call errors(rank,"Julia constant improperly formatted")
      end if
   end do
 
@@ -479,7 +479,7 @@ program Mandelbrot
      eff=100.-par_time*100./total_proc_times
      eff=100.-eff/95.
      if (nprocs.gt.1)then
-        write(1,1005) "Parallel Effciency:",eff,"%"
+34      write(1,1005) "Parallel Effciency:",eff,"%"
 1005    format(1x,A,32x,f6.2,1x,A)
      end if
 
@@ -499,6 +499,10 @@ program Mandelbrot
      if (lookfor_data)then
         write(1,*)'Calculation written to file "data.mand"'
      end if
+
+     write(1,4) 
+!4    format(1x,"mpirun -n ",i2," mandelbrot.mpi -n ",i8, " -i  ", i5,"   "  
+
   end if
   close(1)
   call MPI_FINALIZE(ierr)
@@ -535,4 +539,4 @@ contains
        stop
     end if
   end subroutine errors
-end program
+end program Mandelbrot
