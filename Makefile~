@@ -10,7 +10,7 @@ BUILD_DIR = ./build
 #User editable options
 
 #Communications architectiure: mpi,serial
-COMMS_ARCH:=serial
+COMMS_ARCH:=mpi
 
 MPI_FC:=mpif90
 

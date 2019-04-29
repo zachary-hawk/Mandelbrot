@@ -1,0 +1,35 @@
+ +==================================================================================+
+ | MM    MM   AAA   NN   NN DDDDD   EEEEEEE LL      BBBBB   RRRRRR   OOOOO  TTTTTTT |
+ | MMM  MMM  AAAAA  NNN  NN DD  DD  EE      LL      BB   B  RR   RR OO   OO   TTT   |
+ | MM MM MM AA   AA NN N NN DD   DD EEEEE   LL      BBBBBB  RRRRRR  OO   OO   TTT   |
+ | MM    MM AAAAAAA NN  NNN DD   DD EE      LL      BB   BB RR  RR  OO   OO   TTT   |
+ | MM    MM AA   AA NN   NN DDDDDD  EEEEEEE LLLLLLL BBBBBB  RR   RR  OOOO0    TTT   |
+ |                                                                                  |
+ | Mandelbrot v.2.1, Z.Hawkhead                                                     |
+ +==================================================================================+
+
+ Compiled with GNU Fortran 7.4.0 on Apr 26 2019 at 19:23:45
+ Compiled for system: Darwin_18.2.0_x86_64
+ Communications architechture: MPI
+
+ Calculation started:  Apr 26 2019 at 19:28:29.013
+
+ Calculation Type:                              Mandelbrot
+ No. Grid points:                                     1000
+ No. Iteration:                                         50
+
+ Extent used: X:                                     -2.00      0.50
+              Y:                                     -1.25      1.25
+
+ Calculated in Serial
+ Writing efficiency data:                               On
+ Writing data:                                          On
+
+ Starting Calculation:
+ ************************************************************************************
+ ************************************************************************************
+ Total Calculation Time:                           0.42003 s
+ ************************************************************************************
+
+ Efficiency data writen to file 'efficiency.mand'
+ Calculation written to file "data.mand"
