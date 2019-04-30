@@ -10,11 +10,12 @@ BUILD_DIR = ./build
 #User editable options
 
 #Communications architectiure: mpi,serial
-COMMS_ARCH:=serial
+COMMS_ARCH:=mpi
 
 MPI_FC:=mpif90
 
-SERIAL_FC:=ifort
+SERIAL_FC:=gfortran
+
 
 ########################################
 
@@ -38,7 +39,7 @@ clean:
 	rm $(SOURCE)/*.o $(objects) $(SOURCE)/mandelbrot.mpi
 
 cleanall:
-	rm -f $(SOURCE)/*.o $(objects) $(SOURCE)/mandelbrot.mpi $(BUILD_DIR)/mandelbrot.mpi
+	rm -f $(SOURCE)/*.o $(objects) $(SOURCE)/mandelbrot.* $(BUILD_DIR)/mandelbrot.*
 
 
 endif 
@@ -60,7 +61,11 @@ clean:
 	rm $(SOURCE)/*.o $(objects) $(SOURCE)/mandelbrot.serial
 
 cleanall:
-	rm -f $(SOURCE)/*.o $(objects) $(SOURCE)/mandelbrot.serial $(BUILD_DIR)/mandelbrot.serial
+	rm -f $(SOURCE)/*.o $(objects) $(SOURCE)/mandelbrot.* $(BUILD_DIR)/mandelbrot.*
 
 
 endif
+
+
+dist:
+	tar -cvf MANDELBROT.tar .
