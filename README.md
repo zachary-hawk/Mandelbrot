@@ -20,6 +20,13 @@ INSTALL
 
 Edit the Makefile to specify the compiler and communications architecture.Compile using ```make```. To install to the '''build/''' directory, use ```make install``` Installation can be cleaned of object files using ```make clean```, to fully clean installation, use ```make cleanall```.
 
+IMAGING
+-------
+
+To visualise the calculations, use ```plot_mand.py```. Colours can be altered using commandline flag- either integer 0<i<79, or matplotlib.cm colormap string.
+
+e.g. ```plot_mand.py jet```
+
 
 EXAMPLES
 --------
