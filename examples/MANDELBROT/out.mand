@@ -1,0 +1,47 @@
+ +==================================================================================+
+ | MM    MM   AAA   NN   NN DDDDD   EEEEEEE LL      BBBBB   RRRRRR   OOOOO  TTTTTTT |
+ | MMM  MMM  AAAAA  NNN  NN DD  DD  EE      LL      BB   B  RR   RR OO   OO   TTT   |
+ | MM MM MM AA   AA NN N NN DD   DD EEEEE   LL      BBBBBB  RRRRRR  OO   OO   TTT   |
+ | MM    MM AAAAAAA NN  NNN DD   DD EE      LL      BB   BB RR  RR  OO   OO   TTT   |
+ | MM    MM AA   AA NN   NN DDDDDD  EEEEEEE LLLLLLL BBBBBB  RR   RR  OOOO0    TTT   |
+ |                                                                                  |
+ | Mandelbrot v.2.1, Z.Hawkhead                                                     |
+ +==================================================================================+
+
+ Compiled with GNU Fortran 7.4.0 on May  1 2019 at 19:06:17
+ Compiled for system: Darwin_18.2.0_x86_64
+ Communications architechture: MPI
+
+ Calculation started:  May 04 2019 at 16:09:54.498
+
+ Calculation Type:                              Mandelbrot
+ No. Grid points:                                     1000
+ No. Iteration:                                         50
+
+ Extent used: X:                                     -2.00      0.50
+              Y:                                     -1.25      1.25
+
+ Calculated in Parallel
+ No. Processes:                                         10
+
+ Colouring by Processor:                               Off
+ Writing efficiency data:                              Off
+ Writing data:                                          On
+
+ Starting Calculation:
+ ************************************************************************************
+ Calculation 10% complete:                         0.01031 s
+ Calculation 20% complete:                         0.01910 s
+ Calculation 30% complete:                         0.02756 s
+ Calculation 40% complete:                         0.03584 s
+ Calculation 50% complete:                         0.04412 s
+ Calculation 60% complete:                         0.05247 s
+ Calculation 70% complete:                         0.06105 s
+ Calculation 80% complete:                         0.06847 s
+ Calculation 90% complete:                         0.07534 s
+ ************************************************************************************
+ Total Calculation Time:                           0.07602 s
+ ************************************************************************************
+
+ Parallel Effciency:                                 99.09 %
+ Calculation written to file "data.mand"
