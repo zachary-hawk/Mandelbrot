@@ -10,6 +10,7 @@ program Mandelbrot
   implicit none
   include 'mpif.h'
   integer :: N=1000,Max_iter=50 ,i,j,k,l=0,m, colour_ref,colour_ref_buff,i_buff,j_buff, rank_buff,comp_count,z_counter=21
+  integer :: e_default=2
   real,allocatable,dimension(:) :: Buffer_mpi,rank_0_buff
   real,allocatable,dimension(:,:):: set
   complex :: c,z,c_buff=(0,0) ! the complex number to be used
@@ -21,7 +22,7 @@ program Mandelbrot
   character(len=20)::name !Arg name
   logical::lookfor_N=.FALSE.,lookfor_MAX_ITER=.FALSE.,lookfor_PARALLEL=.FALSE.,lookfor_lx=.FALSE.,lookfor_data=.TRUE.
   logical::lookfor_ux=.FALSE.,lookfor_ly=.FALSE.,lookfor_uy=.FALSE.,lookfor_eff=.FALSE.,lookfor_c=.FALSE.,lookfor_j=.FALSE.
-  !logical::lookfor_imz=.FALSE.,lookfor_rez=.FALSE.
+  logical::lookfor_m=.FALSE.
   character::clear_check
   integer :: d_t(8)
   character*10 :: b(3)
@@ -176,6 +177,20 @@ program Mandelbrot
            lower_y=-2.
            upper_x=2.
            upper_y=2.
+        case("-m") !Added in v1.0.1
+           lookfor_N=.FALSE.
+           lookfor_MAX_ITER=.FALSE.
+           lookfor_lx=.FALSE.
+           lookfor_ux=.FALSE.
+           lookfor_ly=.FALSE.
+           lookfor_uy=.FALSE.
+           lookfor_c=.FALSE.
+           lookfor_j=.FALSE.
+           lookfor_m=.TRUE.
+           lower_x=-1.5
+           lower_y=-1.5
+           upper_x=1.5
+           upper_y=1.5
         case default
            if (lookfor_N) then
               name=adjustl(name)
@@ -198,7 +213,9 @@ program Mandelbrot
            else if (lookfor_j)then
               name=adjustl(name)
               read(name,*)z_char
-
+           else if (lookfor_m)then
+              name=adjustl(name)
+              read(name,*)e_default
 
            else
               write(*,33)"Undefined Flag:", name
@@ -322,7 +339,9 @@ program Mandelbrot
         write(1,2002) "Calculation Type:","Mandelbrot"
      endif
 2001 format(1x,A,35x,A)
-2002 format(1x,A,30x,A) 
+2002 format(1x,A,30x,A)
+     write(1,91)"Exponent:",e_default
+91   format(1x,A,42x,i6)
      write(N_character,'(i6)')N    
      write(1,1) "No. Grid points:",trim(N_character)
 1    format(1x,A,35x,A,6x) !             ",i6," Grid points")
@@ -337,9 +356,10 @@ program Mandelbrot
            write(1,78)"Value of c:",z_re,z_im,"i"
         end if
 77      format(1x,A,34x,f5.3,A,f5.3,A)
-78      format(1x,A,34x,f5.3,f5.3,A)
+78      format(1x,A,34x,f5.3,f6.3,A)
 
      end if
+     
      write(1,*)    
      write(1,75) lower_X,upper_X
      write(1,76) lower_Y,upper_Y
@@ -407,9 +427,9 @@ program Mandelbrot
 
 
         if (lookfor_j)then
-           k=julia(Max_iter,z,c)
+           k=julia(Max_iter,z,c,e_default)
         else
-           k=mand(Max_iter,z,c)
+           k=mand(Max_iter,z,c,e_default)
         end if
 
 
