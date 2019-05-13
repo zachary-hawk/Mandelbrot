@@ -22,10 +22,9 @@ program Mandelbrot
   character(len=20)::name !Arg name
   logical::lookfor_N=.FALSE.,lookfor_MAX_ITER=.FALSE.,lookfor_PARALLEL=.FALSE.,lookfor_lx=.FALSE.,lookfor_data=.TRUE.
   logical::lookfor_ux=.FALSE.,lookfor_ly=.FALSE.,lookfor_uy=.FALSE.,lookfor_eff=.FALSE.,lookfor_c=.FALSE.,lookfor_j=.FALSE.
-  logical::lookfor_m=.FALSE.
-  character::clear_check
-  integer :: d_t(8)
-  character*10 :: b(3)
+  logical::lookfor_m=.FALSE.,J_FOR_CARRYING=.FALSE.,lookfor_buddah=.FALSE.,B_FOR_CARRYING=.FALSE.
+  integer:: d_t(8),budda_param
+  character*10 :: b(3),clear_check
   character(len=100)::version, compiler,arch_string, DATE,TIME,comms="MPI"
   character(len=81)::parser_version="Mandelbrot v.2.1, Z.Hawkhead"
   character(len=100)::info="Parallel code for calculating the Mandelbrot Set"
@@ -89,134 +88,76 @@ program Mandelbrot
            lookfor_eff=.TRUE.  
         case("-n","-N")
            lookfor_N=.TRUE.
-           lookfor_MAX_ITER=.FALSE.
-           lookfor_lx=.FALSE.
-           lookfor_ux=.FALSE.
-           lookfor_ly=.FALSE.
-           lookfor_uy=.FALSE.
-           !           lookfor_j=.FALSE.
         case("-i")
-           lookfor_N=.FALSE.
            lookfor_MAX_ITER=.TRUE.
-           lookfor_lx=.FALSE.
-           lookfor_ux=.FALSE.
-           lookfor_ly=.FALSE.
-           lookfor_uy=.FALSE.
-           !          lookfor_j=.FALSE.
         case("-p","--parallel")
            lookfor_PARALLEL=.TRUE.
-           lookfor_N=.FALSE.
-           lookfor_MAX_ITER=.FALSE.
-           lookfor_lx=.FALSE.
-           lookfor_ux=.FALSE.
-           lookfor_ly=.FALSE.
-           lookfor_uy=.FALSE.
-           !         lookfor_j=.FALSE.
         case("-lx")
-           lookfor_N=.FALSE.
-           lookfor_MAX_ITER=.FALSE.
            lookfor_lx=.TRUE.
-           lookfor_ux=.FALSE.
-           lookfor_ly=.FALSE.
-           lookfor_uy=.FALSE.
-           !        lookfor_j=.FALSE.
         case("-ux")
-           lookfor_N=.FALSE.
-           lookfor_MAX_ITER=.FALSE.
-           lookfor_lx=.FALSE.
            lookfor_ux=.TRUE.
-           lookfor_ly=.FALSE.
-           lookfor_uy=.FALSE.
-           !       lookfor_j=.FALSE.
         case("-uy")
-           lookfor_N=.FALSE.
-           lookfor_MAX_ITER=.FALSE.
-           lookfor_lx=.FALSE.
-           lookfor_ux=.FALSE.
-           lookfor_ly=.FALSE.
            lookfor_uy=.TRUE.
-           !lookfor_j=.FALSE.
         case("-ly")
-           lookfor_N=.FALSE.
-           lookfor_MAX_ITER=.FALSE.
-           lookfor_lx=.FALSE.
-           lookfor_ux=.FALSE.
            lookfor_ly=.TRUE.
-           lookfor_uy=.FALSE.
-           !      lookfor_j=.FALSE.
         case("-d","--data") !Added in v1.0.1 
-           lookfor_data=.FALSE.
-           lookfor_N=.FALSE.
-           lookfor_MAX_ITER=.FALSE.
-           lookfor_lx=.FALSE.
-           lookfor_ux=.FALSE.
-           lookfor_ly=.FALSE.
-           lookfor_uy=.FALSE.
-           lookfor_PARALLEL=.FALSE.
-           !     lookfor_j=.FALSE.
+           lookfor_data=.TRUE.
         case("-c","--clear") !Added in v1.0.1
-           lookfor_N=.FALSE.
-           lookfor_MAX_ITER=.FALSE.
-           lookfor_lx=.FALSE.
-           lookfor_ux=.FALSE.
-           lookfor_ly=.FALSE.
-           lookfor_uy=.FALSE.
            lookfor_c=.TRUE.
-           lookfor_j=.FALSE.
-        case("-j","--julia") !Added in v1.0.1                                                                      
-           lookfor_N=.FALSE.
-           lookfor_MAX_ITER=.FALSE.
-           lookfor_lx=.FALSE.
-           lookfor_ux=.FALSE.
-           lookfor_ly=.FALSE.
-           lookfor_uy=.FALSE.
-           lookfor_c=.FALSE.
-           lookfor_j=.TRUE.
-           !Default case, handels inputs
-           lower_x=-2.
-           lower_y=-2.
-           upper_x=2.
-           upper_y=2.
         case("-m") !Added in v1.0.1
-           lookfor_N=.FALSE.
-           lookfor_MAX_ITER=.FALSE.
-           lookfor_lx=.FALSE.
-           lookfor_ux=.FALSE.
-           lookfor_ly=.FALSE.
-           lookfor_uy=.FALSE.
-           lookfor_c=.FALSE.
-           lookfor_j=.FALSE.
            lookfor_m=.TRUE.
            lower_x=-1.5
            lower_y=-1.5
            upper_x=1.5
            upper_y=1.5
+        case("-j","--julia") !Added in v1.0.1                                                                      
+           lookfor_j=.TRUE.
+           J_FOR_CARRYING=.TRUE.
+           lower_x=-2.
+           lower_y=-2.
+           upper_x=2.
+           upper_y=2.
+        case("-b","--buddah")
+           lookfor_buddah=.TRUE.
+           B_FOR_CARRYING=.TRUE.
+           !Default case, handel inputs
         case default
            if (lookfor_N) then
               name=adjustl(name)
               read(name,'(i5)') N
+              lookfor_N=.FALSE.
            else if (lookfor_MAX_ITER) then
               name=adjustl(name)
               read(name,'(i5)') Max_iter
+              lookfor_MAX_ITER=.FALSE.
            else if (lookfor_ux)then
               name=adjustl(name)
               read(name,'(f15.10)') upper_x
+              lookfor_ux=.FALSE.
            else if (lookfor_ly)then
               name=adjustl(name)
               read(name,'(f15.10)') lower_Y
+              lookfor_ly=.FALSE.
            else if (lookfor_uy)then
               name=adjustl(name)
-              read(name,'(f15.10)') upper_Y           
+              read(name,'(f15.10)') upper_Y
+              lookfor_uy=.FALSE.
            else if (lookfor_lx)then
               name=adjustl(name)
               read(name,'(f15.10)') lower_X
+              lookfor_lx=.FALSE.
            else if (lookfor_j)then
               name=adjustl(name)
               read(name,*)z_char
+              lookfor_j=.FALSE.
            else if (lookfor_m)then
               name=adjustl(name)
-              read(name,*)e_default
-
+              read(name,'(i6)')e_default
+              lookfor_m=.FALSE.
+           else if (lookfor_buddah)then
+              name=adjustl(name)
+              read(name,'(i6)') budda_param
+              lookfor_buddah=.FALSE.
            else
               write(*,33)"Undefined Flag:", name
 33            format(1x,A,1x,A)
@@ -333,7 +274,7 @@ program Mandelbrot
      write(1,1000) months(d_t(2)),d_t(3),d_t(1),d_t(5),d_t(6),d_t(7),d_t(8)
 1000 format (' Calculation started:  ', A, 1x, i2.2, 1x, i4.4, ' at ',i2.2, ':', i2.2, ':', i2.2 ,".",i3.3)
      write(1,*)
-     if (lookfor_j)then
+     if (j_for_carrying)then
         write(1,2001) "Calculation Type:","Julia"
      else
         write(1,2002) "Calculation Type:","Mandelbrot"
@@ -349,7 +290,7 @@ program Mandelbrot
      write(max_char,'(i6)')Max_iter
      write(1,2) "No. Iteration:",trim(max_char)
 2    format(1x,A,37x,A)
-     if (lookfor_j)then
+     if (j_for_carrying)then
         if (z_im.gt.0)then
            write(1,77)"Value of c:",z_re,"+",z_im,"i"
         else
@@ -359,7 +300,7 @@ program Mandelbrot
 78      format(1x,A,34x,f5.3,f6.3,A)
 
      end if
-     
+
      write(1,*)    
      write(1,75) lower_X,upper_X
      write(1,76) lower_Y,upper_Y
@@ -395,8 +336,9 @@ program Mandelbrot
      end if
      write(1,*)
      write(1,*) "Starting Calculation:"
-     write(1,*)"************************************************************************************"
-
+     if (nprocs.gt.1)then
+        write(1,*)"************************************************************************************"
+     end if
   end if
 
 
@@ -412,70 +354,118 @@ program Mandelbrot
   dy = (upper_Y-lower_Y)/N
 
 
-  do i=1+rank*N/nprocs,(rank+1)*N/nprocs
 
-     do j=1,N
+  if (b_for_carrying)then
+     if (rank.eq.0)then
 
-        c = cmplx(lower_X+i*dx,lower_Y+j*dy)
-        z=cmplx(z_re,z_im)
-        !do k=0,Max_iter
-        ! c = z+c**2
-        !if (abs(c).gt.2) then
-        ! exit         
-        !end if
-        !end do
+        do i=1,budda_param
+
+           z=cmplx(0,0)
+
+           !print*,"first z",z
+           call init_random_seed()
+           call random_number(z_re)
+           call random_number(z_im)
+           z_re=z_re*(upper_x-lower_x)+lower_x
+           z_im=z_im*(upper_y-lower_y)+lower_y
+
+           
+           c=cmplx(z_re,z_im)
+           !c=cmplx(0.42884,-0.231345)
+           !print*, "c=",c
+           !ensure random number not in Mandelbrot set
+
+           if (mand(Max_iter,z,c,e_default).gt.Max_iter)then
+              cycle
+           end if
 
 
-        if (lookfor_j)then
-           k=julia(Max_iter,z,c,e_default)
+           do j=1,Max_iter
+
+              !print*, z
+              if (abs(z).gt.4)then
+                 exit
+              end if
+
+              
+              k=int(N*(real(z)-lower_x)/(upper_x-lower_x))
+              m=int(N*(aimag(z)-lower_y)/(upper_y-lower_y))
+              z=z**2+c
+              if (m.lt.N .and. m.gt.0)then
+                 if (k.lt.N.and.k.gt.0)then
+                    
+              set(k,m)=set(k,m)+1
+              !print*,z
+                 end if
+              end if
+
+           end do
+
+
+        end do
+     end if
+
+
+
+  else
+
+     do i=1+rank*N/nprocs,(rank+1)*N/nprocs
+
+        do j=1,N
+
+           c = cmplx(lower_X+i*dx,lower_Y+j*dy)
+           z=cmplx(z_re,z_im)
+
+           if (J_FOR_CARRYING)then
+              k=julia(Max_iter,z,c,e_default)
+           else
+              k=mand(Max_iter,z,c,e_default)
+           end if
+
+
+           if (lookfor_PARALLEL) then
+              colour_ref =k -Max_iter-1+k + Max_iter*rank
+              Buffer_mpi(j)=colour_ref
+           else 
+              colour_ref =k -Max_iter-1+k
+              Buffer_mpi(j)=colour_ref
+           end if
+
+        end do
+
+        if (rank.eq.0) then 
+           set(i,1:N)=Buffer_mpi
+           do m=1,nprocs-1
+              l=l+1
+
+              par_start=MPI_WTIME() ! Time the parallel stuff
+              CALL MPI_RECV(i_buff,1,MPI_INT,m,1,MPI_COMM_WORLD,status1,ierr)
+              CALL MPI_RECV(rank_0_buff,N+1,MPI_INT,m,1,MPI_COMM_WORLD,status1,ierr)
+              par_end=MPI_WTIME()
+              par_time=par_time+par_end-par_start
+
+
+              set(i_buff,1:N)=rank_0_buff
+              ! Timing the steps           
+              do comp_count=10,100,10
+                 if (real(l)/real(N).gt.real(comp_count)/100-1./(real(N)*nprocs) .and. &
+                      real(l)/real(N).lt.real(comp_count)/100+1./(real(N)*nprocs))then 
+                    int_time=MPI_WTIME()              
+                    write(1,200) comp_count,int_time-start
+200                 format(" Calculation ",i2,"% complete:                      ",F10.5," s")
+
+                 end if
+              end do
+           end do
         else
-           k=mand(Max_iter,z,c,e_default)
-        end if
-
-
-        if (lookfor_PARALLEL) then
-           colour_ref =k -Max_iter-1+k + Max_iter*rank
-           Buffer_mpi(j)=colour_ref
-        else 
-           colour_ref =k -Max_iter-1+k
-           Buffer_mpi(j)=colour_ref
-        end if
-
-     end do
-
-     if (rank.eq.0) then 
-        set(i,1:N)=Buffer_mpi
-        do m=1,nprocs-1
-           l=l+1
-
-           par_start=MPI_WTIME() ! Time the parallel stuff
-           CALL MPI_RECV(i_buff,1,MPI_INT,m,1,MPI_COMM_WORLD,status1,ierr)
-           CALL MPI_RECV(rank_0_buff,N+1,MPI_INT,m,1,MPI_COMM_WORLD,status1,ierr)
+           par_start=MPI_WTIME()
+           CALL MPI_SEND(i,1,MPI_INT,0,1,MPI_COMM_WORLD,status1,ierr)
+           CALL MPI_SEND(Buffer_mpi,N+1,MPI_INT,0,1,MPI_COMM_WORLD,status1,ierr)
            par_end=MPI_WTIME()
            par_time=par_time+par_end-par_start
-
-
-           set(i_buff,1:N)=rank_0_buff
-           ! Timing the steps           
-           do comp_count=10,100,10
-              if (real(l)/real(N).gt.real(comp_count)/100-1./(real(N)*nprocs) .and. &
-                   real(l)/real(N).lt.real(comp_count)/100+1./(real(N)*nprocs))then 
-                 int_time=MPI_WTIME()              
-                 write(1,200) comp_count,int_time-start
-200              format(" Calculation ",i2,"% complete:                      ",F10.5," s")
-
-              end if
-           end do
-        end do
-     else
-        par_start=MPI_WTIME()
-        CALL MPI_SEND(i,1,MPI_INT,0,1,MPI_COMM_WORLD,status1,ierr)
-        CALL MPI_SEND(Buffer_mpi,N+1,MPI_INT,0,1,MPI_COMM_WORLD,status1,ierr)
-        par_end=MPI_WTIME()
-        par_time=par_time+par_end-par_start
-     end if
-  end do
-
+        end if
+     end do
+  end if
   finish = MPI_WTIME()
   !par_start=MPI_WTIME()
   call MPI_REDUCE(start,inp_st,1,MPI_DOUBLE,MPI_MIN,0,MPI_COMM_WORLD,ierr)
@@ -535,6 +525,7 @@ contains
     write(*,*) '-j, --julia       Calculate Julia set with variable c: Format [re:im]'
     write(*,*) '-n, -N            Set size of grid'
     write(*,*) '-i                Set maximum iteration'
+    write(*,*) '-m                Exponent for generalised Mandelbrot and Julia set calculation'
     write(*,*) '-p                Toggle parallel image generation'
     write(*,*) '-e, --efficiency  Write data to file "Mandelbrot.dat" for efficiceny testing'
     write(*,*) '-d, --data        Surpress data output'
@@ -558,4 +549,19 @@ contains
        stop
     end if
   end subroutine errors
+
+  subroutine init_random_seed()
+    implicit none
+    integer, allocatable :: seed(:)
+    integer ::  n, un, istat
+
+    call random_seed(size = n)
+    allocate(seed(n))
+    open(newunit=un, file="/dev/urandom", access="stream", &
+         form="unformatted", action="read", status="old", iostat=istat)
+    read(un) seed
+    close(un)
+    call random_seed(put=seed)
+  end subroutine init_random_seed
+
 end program Mandelbrot
