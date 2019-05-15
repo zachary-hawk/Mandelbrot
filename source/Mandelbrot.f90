@@ -6,6 +6,7 @@ program Mandelbrot
   !use MPI 
   use files
   use fractal
+  use io
   use ISO_FORTRAN_ENV
   implicit none
   include 'mpif.h'
@@ -13,7 +14,7 @@ program Mandelbrot
   integer :: e_default=2,k_buff,m_buff
   real,allocatable,dimension(:) :: Buffer_mpi,rank_0_buff
   real,allocatable,dimension(:,:):: set,buddah_set,buddah_buff
-  complex :: c,z,c_buff=(0,0) ! the complex number to be used
+  complex :: c,z,c_buff=(0,0),julia_param ! the complex number to be used
   double precision :: lower_X=-2.0,upper_X=0.5,lower_Y=-1.25,upper_Y=1.25,dx,dy
   double precision ::start, finish ,inp_st, inp_fn,int_time,par_start,par_end,par_time=0.0,tot_par_time,total_proc_times
   integer:: ierr, nprocs, rank, rem 
@@ -22,11 +23,11 @@ program Mandelbrot
   character(len=20)::name !Arg name
   logical::lookfor_N=.FALSE.,lookfor_MAX_ITER=.FALSE.,lookfor_PARALLEL=.FALSE.,lookfor_lx=.FALSE.,lookfor_data=.TRUE.
   logical::lookfor_ux=.FALSE.,lookfor_ly=.FALSE.,lookfor_uy=.FALSE.,lookfor_eff=.FALSE.,lookfor_c=.FALSE.,lookfor_j=.FALSE.
-  logical::lookfor_m=.FALSE.,J_FOR_CARRYING=.FALSE.,lookfor_buddah=.FALSE.,B_FOR_CARRYING=.FALSE.
+  logical::lookfor_m=.FALSE.,J_FOR_CARRYING=.FALSE.,lookfor_buddah=.FALSE.,B_FOR_CARRYING=.FALSE.,param
   integer:: d_t(8),budda_param
   character*10 :: b(3),clear_check
   character(len=100)::version, compiler,arch_string,path_string, DATE,TIME,comms="MPI"
-  character(len=81)::parser_version="Mandelbrot v.2.1, Z.Hawkhead"
+  character(len=81)::parser_version="Mandelbrot v.3.0, Z.Hawkhead"
   character(len=100)::info="Parallel code for calculating the Mandelbrot Set"
   character(len=15)::N_character,max_char,buddah_char
   real::eff,z_im=0.,z_re=0.
@@ -64,6 +65,11 @@ program Mandelbrot
   call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierr)             
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nprocs,ierr)   
 
+
+!!! Define the parameters from the param.mand
+
+  call READ_PARAMETERS(N,Max_iter,e_default,budda_param,z_re,z_im,lower_x,lower_y, upper_x,&
+       upper_y,lookfor_parallel,lookfor_data,lookfor_eff,j_for_carrying,b_for_carrying,param)
 
 
   ! Set up Commandline Parser
@@ -151,6 +157,24 @@ program Mandelbrot
               name=adjustl(name)
               read(name,*)z_char
               lookfor_j=.FALSE.
+              do i=1,len(z_char)
+                 if (z_char(i:i).eq.":")then
+                    z_counter=i
+                    exit
+                 end if
+                 if (i.eq.len(z_char))then
+                    call errors(rank,"Julia constant improperly formatted")
+                 end if
+              end do
+
+              z_re_char=z_char(2:z_counter-1)
+              z_im_char=z_char(i+1:len(trim(z_char))-1)
+              
+              
+
+
+              read(z_re_char,*)z_re
+              read(z_im_char,*)z_im
            else if (lookfor_m)then
               name=adjustl(name)
               read(name,'(i6)')e_default
@@ -171,42 +195,6 @@ program Mandelbrot
   end if
 
 
-
-  !  if (rank.eq.0)
-
-
-  ! IDENTIFYING Z
-
-  do i=1,len(z_char)
-     if (z_char(i:i).eq.":")then
-        z_counter=i
-        exit
-     end if
-     if (i.eq.len(z_char))then
-        call errors(rank,"Julia constant improperly formatted")
-     end if
-  end do
-
-  z_re_char=z_char(2:z_counter-1)
-  z_im_char=z_char(i+1:len(trim(z_char))-1)
-
-
-
-  read(z_re_char,*)z_re
-  read(z_im_char,*)z_im
-
-  !  if (lookfor_j.eqv..TRUE. .and. lookfor_lx.eqv..FALSE.)then 
-  !     lower_x=-2.
-  !  end if
-  !  if (lookfor_j.eqv..TRUE..and. lookfor_ux.eqv..FALSE.)then
-  !     upper_x=2.
-  !  end if
-  !  if (lookfor_j.eqv..TRUE..and. lookfor_uy.eqv..FALSE.)then
-  !     upper_y=2.
-  !  end if
-  !  if (lookfor_j.eqv..TRUE. .and. lookfor_ly.eqv..FALSE.)then
-  !     lower_y=-2.
-  !  end if
 
   ! Check for clear command
   if(lookfor_c) then
@@ -273,6 +261,11 @@ program Mandelbrot
      write(1,1000) months(d_t(2)),d_t(3),d_t(1),d_t(5),d_t(6),d_t(7),d_t(8)
 1000 format (' Calculation started:  ', A, 1x, i2.2, 1x, i4.4, ' at ',i2.2, ':', i2.2, ':', i2.2 ,".",i3.3)
      write(1,*)
+     if (param)then
+        write(1,*) "Reading Parameters File:"
+     else
+        write(1,*) "Running with Defaults:"
+     end if
      if (j_for_carrying)then
         write(1,2001) "Calculation Type:","Julia"
      else if (b_for_carrying)then
