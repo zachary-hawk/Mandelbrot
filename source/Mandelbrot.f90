@@ -10,25 +10,25 @@ program Mandelbrot
   implicit none
   include 'mpif.h'
   integer :: N=1000,Max_iter=50 ,i,j,k,l=0,m, colour_ref,colour_ref_buff,i_buff,j_buff, rank_buff,comp_count,z_counter=21
-  integer :: e_default=2
+  integer :: e_default=2,k_buff,m_buff
   real,allocatable,dimension(:) :: Buffer_mpi,rank_0_buff
-  real,allocatable,dimension(:,:):: set
+  real,allocatable,dimension(:,:):: set,buddah_set,buddah_buff
   complex :: c,z,c_buff=(0,0) ! the complex number to be used
   double precision :: lower_X=-2.0,upper_X=0.5,lower_Y=-1.25,upper_Y=1.25,dx,dy
   double precision ::start, finish ,inp_st, inp_fn,int_time,par_start,par_end,par_time=0.0,tot_par_time,total_proc_times
   integer:: ierr, nprocs, rank, rem 
   integer, dimension(MPI_STATUS_SIZE):: status1
-  integer::narg,cptArg !#of arg & counter of arg
+  integer::narg,cptArg,buddah_counter=0,buddah_buff_counter !#of arg & counter of arg
   character(len=20)::name !Arg name
   logical::lookfor_N=.FALSE.,lookfor_MAX_ITER=.FALSE.,lookfor_PARALLEL=.FALSE.,lookfor_lx=.FALSE.,lookfor_data=.TRUE.
   logical::lookfor_ux=.FALSE.,lookfor_ly=.FALSE.,lookfor_uy=.FALSE.,lookfor_eff=.FALSE.,lookfor_c=.FALSE.,lookfor_j=.FALSE.
   logical::lookfor_m=.FALSE.,J_FOR_CARRYING=.FALSE.,lookfor_buddah=.FALSE.,B_FOR_CARRYING=.FALSE.
   integer:: d_t(8),budda_param
   character*10 :: b(3),clear_check
-  character(len=100)::version, compiler,arch_string, DATE,TIME,comms="MPI"
+  character(len=100)::version, compiler,arch_string,path_string, DATE,TIME,comms="MPI"
   character(len=81)::parser_version="Mandelbrot v.2.1, Z.Hawkhead"
   character(len=100)::info="Parallel code for calculating the Mandelbrot Set"
-  character(len=15)::N_character,max_char
+  character(len=15)::N_character,max_char,buddah_char
   real::eff,z_im=0.,z_re=0.
   character(20)::z_char="[0.0:0.0]",z_re_char,z_im_char
   character(len=3),dimension(12)::months
@@ -52,6 +52,7 @@ program Mandelbrot
 #define compiler "GNU Fortran"
 #define version __VERSION__
 #endif
+
 
 
 
@@ -101,7 +102,7 @@ program Mandelbrot
         case("-ly")
            lookfor_ly=.TRUE.
         case("-d","--data") !Added in v1.0.1 
-           lookfor_data=.TRUE.
+           lookfor_data=.FALSE.
         case("-c","--clear") !Added in v1.0.1
            lookfor_c=.TRUE.
         case("-m") !Added in v1.0.1
@@ -128,7 +129,7 @@ program Mandelbrot
               lookfor_N=.FALSE.
            else if (lookfor_MAX_ITER) then
               name=adjustl(name)
-              read(name,'(i5)') Max_iter
+              read(name,'(i12)') Max_iter
               lookfor_MAX_ITER=.FALSE.
            else if (lookfor_ux)then
               name=adjustl(name)
@@ -156,7 +157,7 @@ program Mandelbrot
               lookfor_m=.FALSE.
            else if (lookfor_buddah)then
               name=adjustl(name)
-              read(name,'(i6)') budda_param
+              read(name,'(i12)') budda_param
               lookfor_buddah=.FALSE.
            else
               write(*,33)"Undefined Flag:", name
@@ -233,8 +234,6 @@ program Mandelbrot
 
      call errors(rank," Max No. iterations must be positive integer")
 
-  else if (N.lt.nprocs**2)then
-     call errors(rank,"Too few grid points for parallism ")
   end if
 
   !Ensure commensurate with cores 
@@ -258,7 +257,7 @@ program Mandelbrot
 
 
 
-
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! FILE WRITTING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   if (rank.eq.0)then
 
@@ -276,20 +275,28 @@ program Mandelbrot
      write(1,*)
      if (j_for_carrying)then
         write(1,2001) "Calculation Type:","Julia"
+     else if (b_for_carrying)then
+        write(1,2002) "Calculation Type:","Buddahbrot"
      else
         write(1,2002) "Calculation Type:","Mandelbrot"
      endif
+     write(1,*)
 2001 format(1x,A,35x,A)
 2002 format(1x,A,30x,A)
      write(1,91)"Exponent:",e_default
 91   format(1x,A,42x,i6)
+     if (b_for_carrying)then
+        write(buddah_char,'(i12)')budda_param
+        write(1,3) "No. Initial positions:",trim(buddah_char)
+3       format(1x,A,23x,A,6x)
+     end if
      write(N_character,'(i6)')N    
      write(1,1) "No. Grid points:",trim(N_character)
-1    format(1x,A,35x,A,6x) !             ",i6," Grid points")
+1    format(1x,A,35x,A,6x) !             ",i6," Grid points")x
 
-     write(max_char,'(i6)')Max_iter
+     write(max_char,'(i12)')Max_iter
      write(1,2) "No. Iteration:",trim(max_char)
-2    format(1x,A,37x,A)
+2    format(1x,A,31x,A)
      if (j_for_carrying)then
         if (z_im.gt.0)then
            write(1,77)"Value of c:",z_re,"+",z_im,"i"
@@ -336,13 +343,13 @@ program Mandelbrot
      end if
      write(1,*)
      write(1,*) "Starting Calculation:"
-     if (nprocs.gt.1)then
+     if (nprocs.gt.1 .and. b_for_carrying.eq..false.)then
         write(1,*)"************************************************************************************"
      end if
   end if
 
 
-
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
   !Do the Calculations
@@ -353,59 +360,93 @@ program Mandelbrot
   dx = (upper_X-lower_X)/N
   dy = (upper_Y-lower_Y)/N
 
-
+  !This bit for the Buddahbrot
 
   if (b_for_carrying)then
-     if (rank.eq.0)then
 
-        do i=1,budda_param
+     !if (rank.eq.0) then
+     allocate(buddah_set(1:N,1:N))
+     buddah_set=0
+     !end if
+     !call MPI_BCAST(set,N**2,MPI_INT,0,MPI_COMM_WORLD,ierr)
 
-           z=cmplx(0,0)
+     do i=1+rank*budda_param/nprocs,(rank+1)*budda_param/nprocs
 
-           !print*,"first z",z
-           call init_random_seed()
-           call random_number(z_re)
-           call random_number(z_im)
-           z_re=z_re*(upper_x-lower_x)+lower_x
-           z_im=z_im*(upper_y-lower_y)+lower_y
+        z=cmplx(0,0)
 
-           
-           c=cmplx(z_re,z_im)
-           !c=cmplx(0.42884,-0.231345)
-           !print*, "c=",c
-           !ensure random number not in Mandelbrot set
+        !print*,"first z",z
+        !call init_random_seed()
+        !call random_number(z_re)
+        !call random_number(z_im)
+        !z_re=z_re*(upper_x-lower_x)+lower_x
+        !z_im=z_im*(upper_y-lower_y)+lower_y
 
-           if (mand(Max_iter,z,c,e_default).gt.Max_iter)then
-              cycle
+
+        !c=cmplx(z_re,z_im)
+        c=random_pos()
+
+        if (mand(Max_iter,z,c,e_default).gt.Max_iter)then
+           cycle
+
+        end if
+        buddah_counter=buddah_counter+1
+        z=cmplx(0,0)
+        do j=1,Max_iter
+           z=z**e_default+c
+           if (abs(z).gt.4)then
+              exit
            end if
 
 
-           do j=1,Max_iter
+           k=int(N*(real(z)-lower_x)/(upper_x-lower_x))
+           m=int(N*(aimag(z)-lower_y)/(upper_y-lower_y))
 
-              !print*, z
-              if (abs(z).gt.4)then
-                 exit
+           if (m.lt.N .and. m.gt.0)then
+              if (k.lt.N.and.k.gt.0)then
+                 !set(k,m)=set(k,m)+10
+                 buddah_set(m,k)=buddah_set(m,k)+N
               end if
-
-              
-              k=int(N*(real(z)-lower_x)/(upper_x-lower_x))
-              m=int(N*(aimag(z)-lower_y)/(upper_y-lower_y))
-              z=z**2+c
-              if (m.lt.N .and. m.gt.0)then
-                 if (k.lt.N.and.k.gt.0)then
-                    
-              set(k,m)=set(k,m)+1
-              !print*,z
-                 end if
-              end if
-
-           end do
-
+           end if
 
         end do
+     end do
+     !     print*, buddah_set,rank
+
+
+     if (rank.gt.0)then
+
+
+
+        CALL MPI_SEND(buddah_set,N**2,MPI_FLOAT,0,rank,MPI_COMM_WORLD,status1,ierr)
+
+
      end if
 
+     if (rank.eq.0)then
 
+        allocate(buddah_buff(1:N,1:N))
+
+        set=set+buddah_set
+
+        do j=1,nprocs-1
+
+
+           CALL MPI_RECV(buddah_buff,N**2,MPI_FLOAT,j,j,MPI_COMM_WORLD,status1,ierr)
+           !        print*, "rec"
+           set=set+buddah_buff
+        end do
+     end if
+     !     call MPI_REDUCE(buddah_set,set,N**2,MPI_FLOAT,MPI_SUM,0,MPI_COMM_WORLD)
+     ! print*,"after"
+
+
+     !    if (rank.eq.0)then
+     !      set=buddah_set
+     !  end if
+
+
+
+     !and the Mandelbrot and Julia 
 
   else
 
@@ -471,12 +512,38 @@ program Mandelbrot
   call MPI_REDUCE(start,inp_st,1,MPI_DOUBLE,MPI_MIN,0,MPI_COMM_WORLD,ierr)
   CALL MPI_REDUCE(finish,inp_fn,1,MPI_DOUBLE,MPI_MAX,0,MPI_COMM_WORLD,ierr)
   CALL MPI_REDUCE(finish-start,total_proc_times,1,MPI_DOUBLE,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+  if (b_for_carrying)then
+     CALL MPI_REDUCE(buddah_counter,buddah_buff_counter,1,MPI_INT,MPI_SUM,MPI_COMM_WORLD,ierr)
+
+  end if
+
   !par_end=MPI_WTIME()
   !par_time=par_time+par_end-par_start
 
   !  print*,total_proc_times
 
   CALL MPI_REDUCE(par_time,tot_par_time,1,MPI_DOUBLE,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+
+
+
+
+  !plotting perimeter points
+
+  !  open(unit=12,file="perim.mand")
+  ! do i=2,N-1
+  !   do j=2,N-1
+  !
+  !       if (set(i,j).gt.max_iter)then
+  !
+  !          if (set(i,j-1).lt.max_iter .or. set(i,j+1).lt.max_iter)then
+  !
+  !             write(12,*) cmplx(lower_X+i*dx,lower_Y+j*dy)
+  !
+  !          end if
+  !      end if
+  !    end do
+  ! end do
+  !close(12)
 
 
   if (rank.eq.0)then
@@ -488,11 +555,14 @@ program Mandelbrot
      write(1,*)
      eff=100.-par_time*100./total_proc_times
      eff=100.-eff/95.
-     if (nprocs.gt.1)then
+     if (nprocs.gt.1 .and. b_for_carrying.eq..false.)then
 34      write(1,1005) "Parallel Effciency:",eff,"%"
 1005    format(1x,A,32x,f6.2,1x,A)
      end if
-
+     if (b_for_carrying)then 
+        write(1,304) "Buddahbrot Efficiency:",100.*real(buddah_buff_counter)/real(budda_param),"%"
+304     format(1x,A,29x,f6.2,1x,A)
+     end if
      if (lookfor_data)then
         write(2)set
         close(2)
@@ -520,20 +590,21 @@ contains
   subroutine print_help()
     write(*,*) trim(parser_version)
     write(*,*) trim(info)
-    write(*,*) '-v, --version     print version information and exit'
-    write(*,*) '-h, --help        print usage information and exit'
-    write(*,*) '-j, --julia       Calculate Julia set with variable c: Format [re:im]'
-    write(*,*) '-n, -N            Set size of grid'
-    write(*,*) '-i                Set maximum iteration'
-    write(*,*) '-m                Exponent for generalised Mandelbrot and Julia set calculation'
-    write(*,*) '-p                Toggle parallel image generation'
-    write(*,*) '-e, --efficiency  Write data to file "Mandelbrot.dat" for efficiceny testing'
-    write(*,*) '-d, --data        Surpress data output'
-    write(*,*) '-c, --clear       Remove previous output files'
-    write(*,*) '-lx               Set lower limit in x direction'
-    write(*,*) '-ux               Set upper limit in x direction'
-    write(*,*) '-ly               Set lower limit in y direction'
-    write(*,*) '-uy               Set upper limit in y direction'
+    write(*,*) '   -v, --version     print version information and exit'
+    write(*,*) '   -h, --help        print usage information and exit'
+    write(*,*) '   -j, --julia       Calculate Julia set with variable c: Format [re:im]'
+    write(*,*) '   -b                Calculate Buddahbrot set, No. initial positions required'
+    write(*,*) '   -n, -N            Set size of grid'
+    write(*,*) '   -i                Set maximum iteration'
+    write(*,*) '   -m                Exponent for generalised calculations'
+    write(*,*) '   -p                Toggle parallel image generation'
+    write(*,*) '   -e, --efficiency  Write data to file "Mandelbrot.dat" for efficiceny testing'
+    write(*,*) '   -d, --data        Surpress data output'
+    write(*,*) '   -c, --clear       Remove previous output files'
+    write(*,*) '   -lx               Set lower limit in x direction'
+    write(*,*) '   -ux               Set upper limit in x direction'
+    write(*,*) '   -ly               Set lower limit in y direction'
+    write(*,*) '   -uy               Set upper limit in y direction'
   end subroutine print_help
 
   subroutine errors(rank,message)
@@ -549,19 +620,5 @@ contains
        stop
     end if
   end subroutine errors
-
-  subroutine init_random_seed()
-    implicit none
-    integer, allocatable :: seed(:)
-    integer ::  n, un, istat
-
-    call random_seed(size = n)
-    allocate(seed(n))
-    open(newunit=un, file="/dev/urandom", access="stream", &
-         form="unformatted", action="read", status="old", iostat=istat)
-    read(un) seed
-    close(un)
-    call random_seed(put=seed)
-  end subroutine init_random_seed
 
 end program Mandelbrot

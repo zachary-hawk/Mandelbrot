@@ -1,5 +1,5 @@
 module fractal
-implicit none
+  implicit none
 
 
 contains
@@ -15,6 +15,11 @@ contains
        if (abs(z).gt.2) then
           exit
        end if
+       !if (k.eq.max_iter)then
+       !  open(unit=1,file="perim.mand",status="unknown",access="append")
+       ! write(1,*)c
+       ! close(1)
+       !end if
     end do
 
 
@@ -26,6 +31,7 @@ contains
     complex::z,c
     integer::k,e
 
+
     do k=0,Max_iter
        z = z**e+c
        if (abs(z).gt.2) then
@@ -34,6 +40,67 @@ contains
     end do
 
   end function julia
+
+
+
+
+  function random_pos()result(z)
+    implicit none
+    complex::z,perim_z
+    integer::i,j
+    real::z_re,z_im,theta,floater
+    character(len=100)::path_string,thing
+    
+#ifdef direc
+#define thing direc
+#endif
+    path_string=trim(adjustl(path_string))
+
+
+    open(unit=35,file=thing//"/../bin/perim.mand")
+
+
+
+    call init_random_seed()
+
+    call random_number(floater)
+    i=int(floater*1666)
+    do j=1,i
+       read(35,*)perim_z
+    end do
+
+    call init_random_seed()
+    call random_number(floater)
+    theta=2*3.1415*floater
+
+    call init_random_seed()
+    call random_number(floater)
+
+    floater=floater*0.1
+
+    z_re=real(perim_z)+cos(theta)*cmplx(1,0)*floater
+    z_im=aimag(perim_z)+sin(theta)*cmplx(0,1)*floater
+
+    z=cmplx(z_re,z_im)
+
+    close(35)
+  end function random_pos
+
+
+  subroutine init_random_seed()
+    implicit none
+    integer, allocatable :: seed(:)
+    integer ::  n, un, istat
+
+    call random_seed(size = n)
+    allocate(seed(n))
+    open(newunit=un, file="/dev/urandom", access="stream", &
+         form="unformatted", action="read", status="old", iostat=istat)
+    read(un) seed
+    close(un)
+    call random_seed(put=seed)
+  end subroutine init_random_seed
+
 
 
 end module fractal
