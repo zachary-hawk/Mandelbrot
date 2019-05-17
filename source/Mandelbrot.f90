@@ -23,7 +23,8 @@ program Mandelbrot
   character(len=20)::name !Arg name
   logical::lookfor_N=.FALSE.,lookfor_MAX_ITER=.FALSE.,lookfor_PARALLEL=.FALSE.,lookfor_lx=.FALSE.,lookfor_data=.TRUE.
   logical::lookfor_ux=.FALSE.,lookfor_ly=.FALSE.,lookfor_uy=.FALSE.,lookfor_eff=.FALSE.,lookfor_c=.FALSE.,lookfor_j=.FALSE.
-  logical::lookfor_m=.FALSE.,J_FOR_CARRYING=.FALSE.,lookfor_buddah=.FALSE.,B_FOR_CARRYING=.FALSE.,param
+  logical::lookfor_m=.FALSE.,J_FOR_CARRYING=.FALSE.,lookfor_buddah=.FALSE.,B_FOR_CARRYING=.FALSE.,param,continuation=.FALSE.
+  logical::lookfor_cont
   integer:: d_t(8),budda_param
   character*10 :: b(3),clear_check
   character(len=100)::version, compiler,arch_string,path_string, DATE,TIME,comms="MPI"
@@ -33,7 +34,7 @@ program Mandelbrot
   real::eff,z_im=0.,z_re=0.
   character(20)::z_char="[0.0:0.0]",z_re_char,z_im_char
   character(len=3),dimension(12)::months
-
+  integer::data_size
 
   months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
@@ -69,7 +70,8 @@ program Mandelbrot
 !!! Define the parameters from the param.mand
 
   call READ_PARAMETERS(N,Max_iter,e_default,budda_param,z_re,z_im,lower_x,lower_y, upper_x,&
-       upper_y,lookfor_parallel,lookfor_data,lookfor_eff,j_for_carrying,b_for_carrying,param)
+       upper_y,lookfor_parallel,lookfor_data,lookfor_eff,j_for_carrying,b_for_carrying,param,&
+       continuation)
 
 
   ! Set up Commandline Parser
@@ -169,8 +171,8 @@ program Mandelbrot
 
               z_re_char=z_char(2:z_counter-1)
               z_im_char=z_char(i+1:len(trim(z_char))-1)
-              
-              
+
+
 
 
               read(z_re_char,*)z_re
@@ -245,6 +247,26 @@ program Mandelbrot
 
 
 
+  ! Check for Buddahbrot continuation
+  if (rank.eq.0)then
+     if (b_for_carrying)then
+        if (continuation)then
+           inquire(FILE="data.mand",EXIST=lookfor_cont)
+           if (lookfor_cont)then
+              open(unit=99,file="data.mand",status="unknown",access="stream",form="Unformatted")
+              inquire(unit=99,size=data_size)
+              if (data_size /= ((N**2)*4+8))then
+                 call errors(rank,"Incompatible grid size for continuation")
+              else
+                 read(99)set
+              end if
+           end if
+        end if
+     end if
+  end if
+
+
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! FILE WRITTING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   if (rank.eq.0)then
@@ -262,15 +284,28 @@ program Mandelbrot
 1000 format (' Calculation started:  ', A, 1x, i2.2, 1x, i4.4, ' at ',i2.2, ':', i2.2, ':', i2.2 ,".",i3.3)
      write(1,*)
      if (param)then
-        write(1,*) "Reading Parameters File:"
+        write(1,*) "Reading Parameters file"
      else
-        write(1,*) "Running with Defaults:"
+        write(1,*) "No Parameters file found"
      end if
+     if(b_for_carrying)then
+        if(continuation)then
+           write(1,*)"Restarting from previous calculation"
+        end if
+     end if
+     write(1,*)
+     write(1,*)"************************************ Parameters ************************************"
+
      if (j_for_carrying)then
+        write(1,*)
         write(1,2001) "Calculation Type:","Julia"
      else if (b_for_carrying)then
+
+        write(1,*)
         write(1,2002) "Calculation Type:","Buddahbrot"
+
      else
+        write(1,*)
         write(1,2002) "Calculation Type:","Mandelbrot"
      endif
      write(1,*)
@@ -315,7 +350,7 @@ program Mandelbrot
         write(1,*)
 
 
-        if (lookfor_PARALLEL .and. lookfor_data) then 
+        if (lookfor_PARALLEL .and. lookfor_data .and.continuation.eq..false.) then 
            write(1,*) "Colouring by processor:                                On"
         else 
            write(1,*) "Colouring by Processor:                               Off"
@@ -378,7 +413,7 @@ program Mandelbrot
         !c=cmplx(z_re,z_im)
         c=random_pos()
 
-        if (mand(Max_iter,z,c,e_default).gt.Max_iter)then
+        if (mand(max_iter,z,c,e_default).gt.max_iter)then
            cycle
 
         end if

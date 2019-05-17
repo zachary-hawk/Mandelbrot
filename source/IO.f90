@@ -5,7 +5,7 @@ contains
 
   subroutine READ_PARAMETERS(N,Max_iter,e_default,budda_param,z_re,z_im,lower_x,lower_y,&
        upper_x,upper_y,lookfor_parallel,lookfor_data,lookfor_eff,j_for_carrying,b_for_carrying&
-       ,param)
+       ,param,lookfor_cont)
     !------------------------------------------------
     !   Subroutine for reading the input parameters
     !
@@ -32,7 +32,7 @@ contains
     character(len=1) :: junk
     real,intent(out) :: z_re,z_im
     complex :: julia_const
-    
+
     integer,intent(out) :: N
     integer,intent(out) :: Max_iter
     integer,intent(out) :: e_default
@@ -47,6 +47,7 @@ contains
     logical,intent(out) :: j_for_carrying
     logical,intent(out) :: b_for_carrying
     logical,intent(out) :: param
+    logical,intent(out) :: lookfor_cont
     N=1000
     Max_iter=50
     e_default=2 
@@ -56,6 +57,7 @@ contains
     lower_Y=-1.25
     upper_Y=1.25
     lookfor_parallel=.false.
+    lookfor_cont=.false.
     lookfor_data=.false.
     lookfor_data=.true.
     lookfor_eff=.false.
@@ -71,7 +73,7 @@ contains
        param=.TRUE.
        do while (IOstatus .eq. 0) 
           read(24,*,IOSTAT=IOstatus)name,junk,val!chara
-       
+
 
           if (adjustl(name).eq."grid_size")then
              read(val,'(i5)')N
@@ -83,7 +85,7 @@ contains
              read(val,'(i12)')budda_param
              b_for_carrying=.TRUE.
           elseif (name.eq."julia_const")then
-       
+
              read(val,*)julia_const
              z_re=real(julia_const)
              z_im=aimag(julia_const)
@@ -101,6 +103,12 @@ contains
                 lookfor_parallel=.TRUE.
              elseif (val.eq."false")then
                 lookfor_parallel=.FALSE.
+             end if
+          elseif(name.eq."continuation")then
+             if (val.eq."true")then
+                lookfor_cont=.TRUE.
+             elseif (val.eq."false")then
+                lookfor_cont=.FALSE.
              end if
           elseif(name.eq."write_data")then
              if(val.eq."true")then
@@ -120,6 +128,7 @@ contains
              elseif(val.eq."julia".or.val.eq."Julia")then
                 j_for_carrying=.TRUE.
              end if
+
           else
              write(*,*) "Warning: Unknown parameter- ", name
              
