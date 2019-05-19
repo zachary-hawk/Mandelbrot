@@ -3,11 +3,11 @@ DIR := $(shell . ./../bin/dir_finder)
 
 OS := $(shell uname -s)
 
-ifeq ($(strip $(OS)),Darwin)
+ifeq ($(strip $(OS)),DARWIN)
 CPU := $(shell . ./../bin/CPU_DARWIN)
 endif	
 
-ifeq ($(strip $(OS)),Linux)
+ifeq ($(strip $(OS)),LINUX)
 CPU := $(shell . ./../bin/CPU_LINUX)
 endif
 

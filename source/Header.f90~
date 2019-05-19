@@ -11,7 +11,7 @@ contains
     implicit none
     integer::file
     character(81)::parser_version
-    character(100)::DATE,TIME,compiler,arch_string,version,comms,cpuinfo
+    character(100)::DATE,TIME,compiler,arch_string,version,comms
 
 
 #ifdef __INTEL_COMPILER
@@ -33,13 +33,6 @@ contains
 #define arch_string arch
 #endif
 
-
-#ifdef cpu
-#define cpuinfo cpu
-#endif
-
-
-
     if (len(arch).eq.0)then 
        print*,"Could not determine system"
     end if
@@ -56,7 +49,6 @@ contains
     write(file,*) "+==================================================================================+"
     write(file,*)
     write(file,*) "Compiled with ",compiler," ",Trim(version), " on ", __DATE__, " at ",__TIME__
-    write(file,*) "Compiled for CPU: ",trim(cpuinfo)
     write(file,*) "Compiled for system: ",trim(arch_string)
     write(file,*) "Communications architechture: ",trim(comms)
     write(file,*)
