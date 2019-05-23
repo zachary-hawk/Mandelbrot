@@ -1,0 +1,10 @@
+module COMMS_MPI
+  include 'mpif.h'
+  implicit none
+
+
+
+
+
+
+end module COMMS_MPI

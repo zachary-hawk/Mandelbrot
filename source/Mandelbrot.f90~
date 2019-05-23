@@ -15,7 +15,7 @@ program Mandelbrot
   real,allocatable,dimension(:) :: Buffer_mpi,rank_0_buff
   real,allocatable,dimension(:,:):: set,buddah_set,buddah_buff
   complex :: c,z,c_buff=(0,0),julia_param ! the complex number to be used
-  double precision :: lower_X=-2.0,upper_X=0.5,lower_Y=-1.25,upper_Y=1.25,dx,dy
+  double precision :: lower_X=-2.0,upper_X=0.5,lower_Y=-1.25,upper_Y=1.25,dx,dy, init_time,init_buff,fini_time,fini_buff
   double precision ::start, finish ,inp_st, inp_fn,int_time,par_start,par_end,par_time=0.0,tot_par_time,total_proc_times
   integer:: ierr, nprocs, rank, rem 
   integer, dimension(MPI_STATUS_SIZE):: status1
@@ -65,13 +65,14 @@ program Mandelbrot
   CALL MPI_INIT(ierr)
   call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierr)             
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nprocs,ierr)   
+  start =MPI_WTIME()
 
 
 !!! Define the parameters from the param.mand
 
   call READ_PARAMETERS(N,Max_iter,e_default,budda_param,z_re,z_im,lower_x,lower_y, upper_x,&
        upper_y,lookfor_parallel,lookfor_data,lookfor_eff,j_for_carrying,b_for_carrying,param,&
-       lookfor_cont)
+       continuation)
 
 
   ! Set up Commandline Parser
@@ -130,6 +131,11 @@ program Mandelbrot
            lookfor_buddah=.TRUE.
            B_FOR_CARRYING=.TRUE.
            !Default case, handel inputs
+        case("-l","--list")
+           write(*,*) trim(Parser_version)
+           write(*,*) trim(info)
+           call params()
+           stop
         case default
            if (lookfor_N) then
               name=adjustl(name)
@@ -249,16 +255,18 @@ program Mandelbrot
 
   ! Check for Buddahbrot continuation
   if (rank.eq.0)then
-     if (continuation)then
-        inquire(FILE="data.mand",EXIST=lookfor_cont)
-        if (lookfor_cont)then
-           open(unit=99,file="data.mand",status="unknown",access="stream",form="Unformatted")
-           inquire(unit=99,size=data_size)
-           if (data_size /= (N*4+8))then
-              call errors(rank,"Incompatible grid size for continuation")
-           else
-              read(99)set
-              print*, "set"
+     if (b_for_carrying)then
+        if (continuation)then
+           inquire(FILE="data.mand",EXIST=lookfor_cont)
+           if (lookfor_cont)then
+              open(unit=99,file="data.mand",status="unknown",access="stream",form="Unformatted")
+              inquire(unit=99,size=data_size)
+              if (data_size /= ((N**2)*4+8))then
+                 call errors(rank,"Incompatible grid size for continuation")
+              else
+                 read(99)set
+                 set=cshift(set,1)
+              end if
            end if
         end if
      end if
@@ -283,21 +291,34 @@ program Mandelbrot
 1000 format (' Calculation started:  ', A, 1x, i2.2, 1x, i4.4, ' at ',i2.2, ':', i2.2, ':', i2.2 ,".",i3.3)
      write(1,*)
      if (param)then
-        write(1,*) "Reading Parameters File:"
+        write(1,*) "Reading Parameters file"
      else
-        write(1,*) "Running with Defaults:"
+        write(1,*) "No Parameters file found"
      end if
+     if(b_for_carrying)then
+        if(continuation)then
+           write(1,*)"Restarting from previous calculation"
+        end if
+     end if
+     write(1,*)
+     write(1,*)"************************************ Parameters ************************************"
+
      if (j_for_carrying)then
+        write(1,*)
         write(1,2001) "Calculation Type:","Julia"
      else if (b_for_carrying)then
+
+        write(1,*)
         write(1,2002) "Calculation Type:","Buddahbrot"
+
      else
+        write(1,*)
         write(1,2002) "Calculation Type:","Mandelbrot"
      endif
      write(1,*)
 2001 format(1x,A,35x,A)
 2002 format(1x,A,30x,A)
-     write(1,91)"Exponent:",e_default
+
 91   format(1x,A,42x,i6)
      if (b_for_carrying)then
         write(buddah_char,'(i12)')budda_param
@@ -311,6 +332,7 @@ program Mandelbrot
      write(max_char,'(i12)')Max_iter
      write(1,2) "No. Iteration:",trim(max_char)
 2    format(1x,A,31x,A)
+     write(1,91)"Exponent:",e_default
      if (j_for_carrying)then
         if (z_im.gt.0)then
            write(1,77)"Value of c:",z_re,"+",z_im,"i"
@@ -325,8 +347,8 @@ program Mandelbrot
      write(1,*)    
      write(1,75) lower_X,upper_X
      write(1,76) lower_Y,upper_Y
-75   format(" Extent used: X:                                ",f10.2,f10.2)
-76   format("              Y:                                ",f10.2,f10.2)
+75   format(" Extent: X:                                     ",f10.2,f10.2)
+76   format("         Y:                                     ",f10.2,f10.2)
      write(1,*)
      if (nprocs.gt.1)then
 
@@ -336,7 +358,7 @@ program Mandelbrot
         write(1,*)
 
 
-        if (lookfor_PARALLEL .and. lookfor_data) then 
+        if (lookfor_PARALLEL .and. lookfor_data .and.b_for_carrying) then 
            write(1,*) "Colouring by processor:                                On"
         else 
            write(1,*) "Colouring by Processor:                               Off"
@@ -368,8 +390,7 @@ program Mandelbrot
 
   !Do the Calculations
 
-
-  start =MPI_WTIME()
+  init_time=MPI_WTIME()
 
   dx = (upper_X-lower_X)/N
   dy = (upper_Y-lower_Y)/N
@@ -396,7 +417,7 @@ program Mandelbrot
         !z_im=z_im*(upper_y-lower_y)+lower_y
 
 
-        !c=cmplx(z_re,z_im)
+        !        c=cmplx(z_re,z_im)
         c=random_pos()
 
         if (mand(max_iter,z,c,e_default).gt.max_iter)then
@@ -419,6 +440,7 @@ program Mandelbrot
               if (k.lt.N.and.k.gt.0)then
                  !set(k,m)=set(k,m)+10
                  buddah_set(m,k)=buddah_set(m,k)+N
+                
               end if
            end if
 
@@ -474,6 +496,7 @@ program Mandelbrot
            if (J_FOR_CARRYING)then
               k=julia(Max_iter,z,c,e_default)
            else
+              z=(0,0)
               k=mand(Max_iter,z,c,e_default)
            end if
 
@@ -526,6 +549,7 @@ program Mandelbrot
   call MPI_REDUCE(start,inp_st,1,MPI_DOUBLE,MPI_MIN,0,MPI_COMM_WORLD,ierr)
   CALL MPI_REDUCE(finish,inp_fn,1,MPI_DOUBLE,MPI_MAX,0,MPI_COMM_WORLD,ierr)
   CALL MPI_REDUCE(finish-start,total_proc_times,1,MPI_DOUBLE,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+  CALL MPI_REDUCE(init_time,init_buff,1,MPI_DOUBLE,MPI_MAX,0,MPI_COMM_WORLD,ierr)
   if (b_for_carrying)then
      CALL MPI_REDUCE(buddah_counter,buddah_buff_counter,1,MPI_INT,MPI_SUM,MPI_COMM_WORLD,ierr)
 
@@ -563,8 +587,10 @@ program Mandelbrot
   if (rank.eq.0)then
      !Finish Files and close
      write(1,*)"************************************************************************************"
+     write(1,1002) init_buff-inp_st
      Write(1,1001) inp_fn-inp_st
 1001 format(" Total Calculation Time:                       ",F11.5," s")   
+1002 format(" Initialisation Time:                          ",F11.5," s")
      write(1,*)"************************************************************************************"  
      write(1,*)
      eff=100.-par_time*100./total_proc_times
@@ -604,8 +630,9 @@ contains
   subroutine print_help()
     write(*,*) trim(parser_version)
     write(*,*) trim(info)
-    write(*,*) '   -v, --version     print version information and exit'
-    write(*,*) '   -h, --help        print usage information and exit'
+    write(*,*) '   -v, --version     Print version information and exit'
+    write(*,*) '   -h, --help        Print usage information and exit'
+    write(*,*) '   -l, --list        Print list of allowed parameters'
     write(*,*) '   -j, --julia       Calculate Julia set with variable c: Format [re:im]'
     write(*,*) '   -b                Calculate Buddahbrot set, No. initial positions required'
     write(*,*) '   -n, -N            Set size of grid'

@@ -30,9 +30,9 @@ BUILD_DIR ?= ./../build
 ifeq ($(COMMS_ARCH),mpi)
 
 
-mandelbrot.mpi: Mandelbrot.o Header.o fractal.o IO.o
-	$(MPI_FC) $(FCFLAGS) -o mandelbrot.mpi Mandelbrot.o Header.o fractal.o IO.o -cpp
-	@echo $(OS)
+mandelbrot.mpi: Mandelbrot.o Header.o fractal.o IO.o COMMS_MPI.o
+	$(MPI_FC) $(FCFLAGS) -o mandelbrot.mpi Mandelbrot.o Header.o fractal.o IO.o COMMS_MPI.o -cpp
+
 Header.o: Header.f90
 	$(MPI_FC) $(FCFLAGS) -c Header.f90 -cpp
 
@@ -42,8 +42,11 @@ fractal.o: fractal.f90
 IO.o: IO.f90
 	$(MPI_FC) $(FCFLAGS) -c IO.f90 -cpp
 
+COMMS_MPI.o: COMMS_MPI.f90
+	$(MPI_FC) $(FCFLAGS) -c COMMS_MPI.f90 -cpp
 
-Mandelbrot.o: Mandelbrot.f90 Header.o fractal.o IO.o
+
+Mandelbrot.o: Mandelbrot.f90 Header.o fractal.o IO.o COMMS_MPI.o
 	$(MPI_FC) $(FCFLAGS) -c Mandelbrot.f90 -cpp
 
 

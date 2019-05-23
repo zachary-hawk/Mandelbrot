@@ -7,9 +7,10 @@ program Mandelbrot
   use files
   use fractal
   use io
+  use comms_mpi
   use ISO_FORTRAN_ENV
   implicit none
-  include 'mpif.h'
+!  include 'mpif.h'
   integer :: N=1000,Max_iter=50 ,i,j,k,l=0,m, colour_ref,colour_ref_buff,i_buff,j_buff, rank_buff,comp_count,z_counter=21
   integer :: e_default=2,k_buff,m_buff
   real,allocatable,dimension(:) :: Buffer_mpi,rank_0_buff
@@ -17,7 +18,7 @@ program Mandelbrot
   complex :: c,z,c_buff=(0,0),julia_param ! the complex number to be used
   double precision :: lower_X=-2.0,upper_X=0.5,lower_Y=-1.25,upper_Y=1.25,dx,dy, init_time,init_buff,fini_time,fini_buff
   double precision ::start, finish ,inp_st, inp_fn,int_time,par_start,par_end,par_time=0.0,tot_par_time,total_proc_times
-  integer:: ierr, nprocs, rank, rem 
+  integer::  nprocs, rank, rem 
   integer, dimension(MPI_STATUS_SIZE):: status1
   integer::narg,cptArg,buddah_counter=0,buddah_buff_counter !#of arg & counter of arg
   character(len=20)::name !Arg name
@@ -62,11 +63,11 @@ program Mandelbrot
 
 
   !SET UP MPI ENVIRONMENT
-  CALL MPI_INIT(ierr)
-  call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierr)             
-  call MPI_COMM_SIZE(MPI_COMM_WORLD,nprocs,ierr)   
-  start =MPI_WTIME()
-
+  CALL COMMS_INIT()
+  call COMMS_RANK(rank)             
+  call COMMS_SIZE(nprocs)   
+  start=COMMS_WTIME()! =MPI_WTIME()
+  
 
 !!! Define the parameters from the param.mand
 
@@ -250,7 +251,7 @@ program Mandelbrot
   call MPI_BCAST(dx,1,MPI_FLOAT,0,MPI_COMM_WORLD,ierr) 
   call MPI_BCAST(dy,1,MPI_FLOAT,0,MPI_COMM_WORLD,ierr) 
   call MPI_BCAST(Max_iter,1,MPI_INT,0,MPI_COMM_WORLD,ierr)
-
+  
 
 
   ! Check for Buddahbrot continuation
@@ -390,7 +391,7 @@ program Mandelbrot
 
   !Do the Calculations
 
-  init_time=MPI_WTIME()
+  init_time=COMMS_WTIME()
 
   dx = (upper_X-lower_X)/N
   dy = (upper_Y-lower_Y)/N
@@ -453,7 +454,7 @@ program Mandelbrot
 
 
 
-        CALL MPI_SEND(buddah_set,N**2,MPI_FLOAT,0,rank,MPI_COMM_WORLD,status1,ierr)
+        CALL COMMS_SEND_REAL_ARRAY(buddah_set,N,N,0,rank)
 
 
      end if
@@ -467,7 +468,7 @@ program Mandelbrot
         do j=1,nprocs-1
 
 
-           CALL MPI_RECV(buddah_buff,N**2,MPI_FLOAT,j,j,MPI_COMM_WORLD,status1,ierr)
+           CALL COMMS_RECV_REAL_ARRAY(buddah_buff,N,N,j,j)
            !        print*, "rec"
            set=set+buddah_buff
         end do
@@ -516,12 +517,12 @@ program Mandelbrot
            do m=1,nprocs-1
               l=l+1
 
-              par_start=MPI_WTIME() ! Time the parallel stuff
-              CALL MPI_RECV(i_buff,1,MPI_INT,m,1,MPI_COMM_WORLD,status1,ierr)
-              CALL MPI_RECV(rank_0_buff,N+1,MPI_INT,m,1,MPI_COMM_WORLD,status1,ierr)
-              par_end=MPI_WTIME()
+              par_start=COMMS_WTIME() ! Time the parallel stuff
+              CALL COMMS_RECV_INT(i_buff,1,m,1)
+              CALL COMMS_RECV_REAL_ARRAY(rank_0_buff,1,N+1,m,1)
+              par_end=COMMS_WTIME()
               par_time=par_time+par_end-par_start
-
+              print*, "RECV"
 
               set(i_buff,1:N)=rank_0_buff
               ! Timing the steps           
@@ -536,22 +537,22 @@ program Mandelbrot
               end do
            end do
         else
-           par_start=MPI_WTIME()
-           CALL MPI_SEND(i,1,MPI_INT,0,1,MPI_COMM_WORLD,status1,ierr)
-           CALL MPI_SEND(Buffer_mpi,N+1,MPI_INT,0,1,MPI_COMM_WORLD,status1,ierr)
-           par_end=MPI_WTIME()
+           par_start=COMMS_WTIME()
+           CALL COMMS_SEND_INT(i,1,0,1)
+           CALL COMMS_SEND_REAL_ARRAY(Buffer_mpi,1,N+1,0,1)
+           par_end=COMMS_WTIME()
            par_time=par_time+par_end-par_start
         end if
      end do
   end if
-  finish = MPI_WTIME()
+  finish = COMMS_WTIME()
   !par_start=MPI_WTIME()
-  call MPI_REDUCE(start,inp_st,1,MPI_DOUBLE,MPI_MIN,0,MPI_COMM_WORLD,ierr)
-  CALL MPI_REDUCE(finish,inp_fn,1,MPI_DOUBLE,MPI_MAX,0,MPI_COMM_WORLD,ierr)
-  CALL MPI_REDUCE(finish-start,total_proc_times,1,MPI_DOUBLE,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-  CALL MPI_REDUCE(init_time,init_buff,1,MPI_DOUBLE,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  call COMMS_REDUCE_DOUBLE(start,inp_st,1,"MPI_MIN")
+  CALL COMMS_REDUCE_DOUBLE(finish,inp_fn,1,"MPI_MAX")
+  CALL COMMS_REDUCE_DOUBLE(finish-start,total_proc_times,1,"MPI_SUM")
+  CALL COMMS_REDUCE_DOUBLE(init_time,init_buff,1,"MPI_MAX")
   if (b_for_carrying)then
-     CALL MPI_REDUCE(buddah_counter,buddah_buff_counter,1,MPI_INT,MPI_SUM,MPI_COMM_WORLD,ierr)
+     CALL COMMS_REDUCE_INT(buddah_counter,buddah_buff_counter,1,"MPI_SUM")
 
   end if
 
@@ -560,7 +561,7 @@ program Mandelbrot
 
   !  print*,total_proc_times
 
-  CALL MPI_REDUCE(par_time,tot_par_time,1,MPI_DOUBLE,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+  CALL COMMS_REDUCE_DOUBLE(par_time,tot_par_time,1,"MPI_SUM")
 
 
 
@@ -624,7 +625,7 @@ program Mandelbrot
 
   end if
   close(1)
-  call MPI_FINALIZE(ierr)
+  call COMMS_FINALISE()
 
 contains 
   subroutine print_help()
