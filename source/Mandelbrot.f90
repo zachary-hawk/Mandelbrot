@@ -454,7 +454,7 @@ program Mandelbrot
 
 
 
-        CALL COMMS_SEND_REAL_ARRAY(buddah_set,N,N,0,rank)
+        !CALL COMMS_SEND_REAL_ARRAY(buddah_set,N,N,0,rank)
 
 
      end if
@@ -468,7 +468,7 @@ program Mandelbrot
         do j=1,nprocs-1
 
 
-           CALL COMMS_RECV_REAL_ARRAY(buddah_buff,N,N,j,j)
+           !CALL COMMS_RECV_REAL_ARRAY(buddah_buff,N,N,j,j)
            !        print*, "rec"
            set=set+buddah_buff
         end do
@@ -518,8 +518,9 @@ program Mandelbrot
               l=l+1
 
               par_start=COMMS_WTIME() ! Time the parallel stuff
+              print*, "rec"
               CALL COMMS_RECV_INT(i_buff,1,m,1)
-              CALL COMMS_RECV_REAL_ARRAY(rank_0_buff,1,N+1,m,1)
+              CALL COMMS_RECV_REAL_ARRAY(rank_0_buff,N+1,m,1)
               par_end=COMMS_WTIME()
               par_time=par_time+par_end-par_start
               print*, "RECV"
@@ -538,8 +539,10 @@ program Mandelbrot
            end do
         else
            par_start=COMMS_WTIME()
+           
            CALL COMMS_SEND_INT(i,1,0,1)
-           CALL COMMS_SEND_REAL_ARRAY(Buffer_mpi,1,N+1,0,1)
+           
+           CALL COMMS_SEND_REAL_ARRAY(Buffer_mpi,N+1,0,1)
            par_end=COMMS_WTIME()
            par_time=par_time+par_end-par_start
         end if
