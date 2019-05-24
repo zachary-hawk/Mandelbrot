@@ -10,6 +10,7 @@ contains
   subroutine COMMS_INIT()
     integer :: ierr
     call MPI_INIT(ierr)
+    call MPI_GET_LIBRARY_VERSION()
   end subroutine COMMS_INIT
 
   subroutine COMMS_FINALISE()

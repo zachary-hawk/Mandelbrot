@@ -3,14 +3,37 @@ module COMMS
   implicit none
   include 'mpif.h'
   integer :: ierr
+  integer,parameter :: max_version_length=MPI_MAX_LIBRARY_VERSION_STRING
   integer, dimension(MPI_STATUS_SIZE):: status1
   character(3) :: comms_arch="MPI"
+  
 contains
+
+  subroutine COMMS_VERSION(maj_mpi,min_mpi)
+    integer, intent(inout):: maj_mpi,min_mpi
+
+    call MPI_GET_VERSION(maj_MPI,min_MPI,ierr)
+
+
+  end subroutine COMMS_VERSION
+
+
+
+  subroutine COMMS_LIBRARY_VERSION(MPI_version)
+    character(len=max_version_length),intent(inout) :: MPI_version
+    integer ::length
+    call MPI_GET_LIBRARY_VERSION(MPI_version,length,ierr)
+
+
+  end subroutine COMMS_LIBRARY_VERSION
+
+
+
 
   subroutine COMMS_INIT()
     integer :: ierr
     call MPI_INIT(ierr)
-    call MPI_GET_LIBRARY_VERSION()
+
   end subroutine COMMS_INIT
 
   subroutine COMMS_FINALISE()
@@ -37,9 +60,9 @@ contains
   subroutine COMMS_SEND_INT(send_buff,count,dest_rank,tag)
     integer:: count,dest_rank,tag
     integer :: send_buff
-!    print*,send_buff
+    !    print*,send_buff
     call MPI_SEND(send_buff,count,MPI_INT,dest_rank,tag,MPI_COMM_WORLD,ierr)
-    
+
   end subroutine COMMS_SEND_INT
 
   subroutine COMMS_SEND_REAL(send_buff,count,dest_rank,tag)
@@ -63,9 +86,9 @@ contains
   subroutine COMMS_SEND_REAL_ARRAY(send_buff,count,dest_rank,tag)
     integer:: count,dest_rank,tag
     real,dimension(count) :: send_buff
-    
+
     call MPI_SEND(send_buff,count,MPI_FLOAT,dest_rank,tag,MPI_COMM_WORLD,ierr)
-    
+
   end subroutine COMMS_SEND_REAL_ARRAY
 
   subroutine COMMS_SEND_DOUBLE_ARRAY(send_buff,count,dest_rank,tag)
@@ -76,7 +99,7 @@ contains
 
 
   !2D array
-   subroutine COMMS_SEND_REAL_ARRAY2D(send_buff,count1,count2,dest_rank,tag)
+  subroutine COMMS_SEND_REAL_ARRAY2D(send_buff,count1,count2,dest_rank,tag)
     integer:: count1,count2,dest_rank,tag
     real,dimension(count1,count2) :: send_buff
 
@@ -92,18 +115,18 @@ contains
   subroutine COMMS_RECV_INT(recv_buff,count,source,tag)
     integer:: count,source,tag
     integer, intent(inout) :: recv_buff
- !   print*, "message in routine"
+    !   print*, "message in routine"
     call MPI_RECV(recv_buff,count,MPI_INT,source,tag,MPI_COMM_WORLD,status1,ierr)
-!    print*, "after",recv_buff
+    !    print*, "after",recv_buff
   end subroutine COMMS_RECV_INT
 
   subroutine COMMS_RECV_REAL(recv_buff,count,source,tag)
     integer:: count,source,tag
     real, intent(inout) :: recv_buff
-  
- !   print*, "Recv sent to routine"
+
+    !   print*, "Recv sent to routine"
     call MPI_RECV(recv_buff,count,MPI_REAL,source,tag,MPI_COMM_WORLD,status1,ierr)
-  !  print*, "Recv success from rank",source 
+    !  print*, "Recv success from rank",source 
 
   end subroutine COMMS_RECV_REAL
 
@@ -197,7 +220,7 @@ contains
     integer,dimension(count),intent(inout) :: recv_buff
     integer,dimension(count) :: send_buff
     character(*) :: OP
-    
+
     if (trim(OP).eq."MPI_MAX")then
        call MPI_REDUCE(send_buff,recv_buff,count,MPI_INT,MPI_MAX,0,MPI_COMM_WORLD,status1,ierr)
     elseif (trim(OP).eq."MPI_MIN")then

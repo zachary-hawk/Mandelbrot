@@ -8,24 +8,21 @@ contains
     implicit none
     integer,intent(in)::Max_iter 
     complex::z,c
-    integer :: k
+    integer::k
     real :: e
 
-    if (e.EQ.int(e))then 
-       do k=0,Max_iter
-          z = z**int(e)+c
-          if (abs(z).gt.2) then
-             exit
-          end if
-       end do
-    else
-       do k=0,Max_iter
-          z = z**e+c
-          if (abs(z).gt.2) then
-             exit
-          end if
-       end do
-    end if
+    do k=0,Max_iter
+       z = z**2.1+c
+       if (abs(z).gt.2) then
+          exit
+       end if
+       !if (k.eq.max_iter)then
+       !  open(unit=1,file="perim.mand",status="unknown",access="append")
+       ! write(1,*)c
+       ! close(1)
+       !end if
+    end do
+
 
   end function mand
 
@@ -35,21 +32,14 @@ contains
     complex::z,c
     integer::k
     real :: e
-    if (e.EQ.int(e))then
-       do k=0,Max_iter
-          z = z**int(e)+c
-          if (abs(z).gt.2) then
-             exit
-          end if
-       end do
-    else 
-       do k=0,Max_iter
-          z = z**e+c
-          if (abs(z).gt.2) then
-             exit
-          end if
-       end do
-    end if
+
+    do k=0,Max_iter
+       z = z**e+c
+       if (abs(z).gt.2) then
+          exit
+       end if
+    end do
+
   end function julia
 
 
@@ -61,7 +51,7 @@ contains
     integer::i,j
     real::z_re,z_im,theta,floater
     character(len=100)::path_string,thing
-
+    
 #ifdef direc
 #define thing direc
 #endif

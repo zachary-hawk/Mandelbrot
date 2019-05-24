@@ -3,9 +3,20 @@ module COMMS
   implicit none
 
   integer :: ierr
-
+  integer ::  max_version_length=1
   character(6) :: comms_arch="SERIAL"
 contains
+
+
+  subroutine COMMS_LIBRARY_VERSION(MPI_version)
+    character(len=max_version_length),intent(inout) :: MPI_version
+    integer ::length
+    
+    
+
+  end subroutine COMMS_LIBRARY_VERSION
+
+
 
   subroutine COMMS_INIT()
     integer :: ierr

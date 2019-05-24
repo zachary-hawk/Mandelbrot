@@ -6,6 +6,7 @@ module files
 use comms
 implicit none
 
+
 contains
   subroutine header(file,parser_version,arch_string)
     use ISO_FORTRAN_ENV
@@ -13,6 +14,13 @@ contains
     integer::file
     character(81)::parser_version
     character(100)::DATE,TIME,compiler,arch_string,version,comms,cpuinfo
+    integer :: maj_mpi,min_mpi
+    character(len=max_version_length) :: mpi_c_version
+
+
+    if (comms_arch.eq."MPI")then
+       call COMMS_LIBRARY_VERSION(mpi_c_version)
+    end if
 
 
 #ifdef __INTEL_COMPILER
@@ -59,7 +67,11 @@ contains
     write(file,*) "Compiled with ",compiler," ",Trim(version), " on ", __DATE__, " at ",__TIME__
     write(file,*) "Compiled for CPU: ",trim(cpuinfo)
     write(file,*) "Compiled for system: ",trim(arch_string)
+    write(file,*)
     write(file,*) "Communications architechture: ",trim(comms_arch)
+    if (comms_arch.eq."MPI")then
+       write(file,*) "MPI Version: ",mpi_c_version(1:15)
+    end if
     write(file,*)
   end subroutine header
 

@@ -3,10 +3,11 @@
 ! Author: Z.Hawkhead           !
 !------------------------------!
 module files
+use comms
 implicit none
 
 contains
-  subroutine header(file,parser_version,arch_string,comms)
+  subroutine header(file,parser_version,arch_string)
     use ISO_FORTRAN_ENV
     implicit none
     integer::file
@@ -58,7 +59,7 @@ contains
     write(file,*) "Compiled with ",compiler," ",Trim(version), " on ", __DATE__, " at ",__TIME__
     write(file,*) "Compiled for CPU: ",trim(cpuinfo)
     write(file,*) "Compiled for system: ",trim(arch_string)
-    write(file,*) "Communications architechture: ",trim(comms)
+    write(file,*) "Communications architechture: ",trim(comms_arch)
     write(file,*)
   end subroutine header
 

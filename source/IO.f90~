@@ -2,7 +2,7 @@ module IO
   implicit none
   integer :: N_d=1000
   integer :: Max_iter_d=50
-  real :: e_default_d=2.
+  integer :: e_default_d=2
   integer :: budda_param_d=10000
   double precision :: lower_X_d=-2.0
   double precision :: upper_X_d=0.5
@@ -53,7 +53,7 @@ contains
 
     integer,intent(out) :: N
     integer,intent(out) :: Max_iter
-    real,intent(out) :: e_default
+    integer,intent(out) :: e_default
     integer,intent(out) :: budda_param
     double precision,intent(out) :: lower_X
     double precision,intent(out) :: upper_X
@@ -99,7 +99,7 @@ contains
           elseif (name.eq."max_iter")then
              read(val,'(i12)')max_iter
           elseif (name.eq."exponent")then
-             read(val,'(f5.2)')e_default
+             read(val,'(i12)')e_default
           elseif (name.eq."buddah_const".or.name.eq."Buddah_const")then
              read(val,'(i12)')budda_param
              !b_for_carrying=.TRUE.
@@ -214,7 +214,7 @@ contains
 
     write(*,73) adjustl("EXPONENT"),":","Specify exponent for calculation"
     write(*,78) "Allowed",":","any int > 1"
-    write(*,76) "Default",":", e_default_d
+    write(*,75) "Default",":", e_default_d
     write(*,*)
 
     write(*,73) adjustl("BUDDAH_CONST"),":","Specify No. initial posotions in Buddahbrot calculation"
