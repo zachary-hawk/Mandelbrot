@@ -1,13 +1,16 @@
-module COMMS_MPI
+module COMMS
 
   implicit none
   include 'mpif.h'
   integer :: ierr
+  integer, dimension(MPI_STATUS_SIZE):: status1
+  character(3) :: comms_arch="MPI"
 contains
 
   subroutine COMMS_INIT()
     integer :: ierr
     call MPI_INIT(ierr)
+    call MPI_GET_LIBRARY_VERSION()
   end subroutine COMMS_INIT
 
   subroutine COMMS_FINALISE()
@@ -34,7 +37,7 @@ contains
   subroutine COMMS_SEND_INT(send_buff,count,dest_rank,tag)
     integer:: count,dest_rank,tag
     integer :: send_buff
-    print*,send_buff
+!    print*,send_buff
     call MPI_SEND(send_buff,count,MPI_INT,dest_rank,tag,MPI_COMM_WORLD,ierr)
     
   end subroutine COMMS_SEND_INT
@@ -72,7 +75,14 @@ contains
   end subroutine COMMS_SEND_DOUBLE_ARRAY
 
 
+  !2D array
+   subroutine COMMS_SEND_REAL_ARRAY2D(send_buff,count1,count2,dest_rank,tag)
+    integer:: count1,count2,dest_rank,tag
+    real,dimension(count1,count2) :: send_buff
 
+    call MPI_SEND(send_buff,count1*count2,MPI_FLOAT,dest_rank,tag,MPI_COMM_WORLD,ierr)
+
+  end subroutine COMMS_SEND_REAL_ARRAY2D
 
 
 
@@ -82,41 +92,51 @@ contains
   subroutine COMMS_RECV_INT(recv_buff,count,source,tag)
     integer:: count,source,tag
     integer, intent(inout) :: recv_buff
-    print*, "message in routine"
-    call MPI_RECV(recv_buff,count,MPI_INT,source,tag,MPI_COMM_WORLD,ierr)
+ !   print*, "message in routine"
+    call MPI_RECV(recv_buff,count,MPI_INT,source,tag,MPI_COMM_WORLD,status1,ierr)
+!    print*, "after",recv_buff
   end subroutine COMMS_RECV_INT
 
   subroutine COMMS_RECV_REAL(recv_buff,count,source,tag)
     integer:: count,source,tag
     real, intent(inout) :: recv_buff
-    call MPI_RECV(recv_buff,count,MPI_REAL,source,tag,MPI_COMM_WORLD,ierr)
+  
+ !   print*, "Recv sent to routine"
+    call MPI_RECV(recv_buff,count,MPI_REAL,source,tag,MPI_COMM_WORLD,status1,ierr)
+  !  print*, "Recv success from rank",source 
+
   end subroutine COMMS_RECV_REAL
 
   subroutine COMMS_RECV_DOUBLE(recv_buff,count,source,tag)
     integer:: count,source,tag
     double precision ,intent(inout) :: recv_buff
-    call MPI_RECV(recv_buff,count,MPI_DOUBLE,source,tag,MPI_COMM_WORLD,ierr)
+    call MPI_RECV(recv_buff,count,MPI_DOUBLE,source,tag,MPI_COMM_WORLD,status1,ierr)
   end subroutine COMMS_RECV_DOUBLE
   !RECV ROUTINES ARRAY
   subroutine COMMS_RECV_INT_ARRAY(recv_buff,count,source,tag)
     integer:: count,source,tag
     integer,dimension(count),intent(inout) :: recv_buff
-    call MPI_RECV(recv_buff,count*MPI_INT,source,tag,MPI_COMM_WORLD,ierr)
+    call MPI_RECV(recv_buff,count,MPI_INT,source,tag,MPI_COMM_WORLD,status1,ierr)
   end subroutine COMMS_RECV_INT_ARRAY
 
   subroutine COMMS_RECV_REAL_ARRAY(recv_buff,count,source,tag)
     integer :: count,source,tag
     real,dimension(count),intent(inout) :: recv_buff
-    call MPI_RECV(recv_buff,count*MPI_REAL,source,tag,MPI_COMM_WORLD,ierr)
+    call MPI_RECV(recv_buff,count,MPI_REAL,source,tag,MPI_COMM_WORLD,status1,ierr)
   end subroutine COMMS_RECV_REAL_ARRAY
 
   subroutine COMMS_RECV_DOUBLE_ARRAY(recv_buff,count,source,tag)
     integer :: count,source,tag
     double precision,dimension(count),intent(inout) :: recv_buff
-    call MPI_RECV(recv_buff,count*MPI_DOUBLE,source,tag,MPI_COMM_WORLD,ierr)
+    call MPI_RECV(recv_buff,count,MPI_DOUBLE,source,tag,MPI_COMM_WORLD,status1,ierr)
   end subroutine COMMS_RECV_DOUBLE_ARRAY
 
-
+  !2D array
+  subroutine COMMS_RECV_REAL_ARRAY2D(recv_buff,count1,count2,source,tag)
+    integer :: count1,count2,source,tag
+    real,dimension(count1,count2),intent(inout) :: recv_buff
+    call MPI_RECV(recv_buff,count1*count2,MPI_REAL,source,tag,MPI_COMM_WORLD,status1,ierr)
+  end subroutine COMMS_RECV_REAL_ARRAY2D
 
 
 
@@ -132,11 +152,11 @@ contains
     character(*) :: OP
 
     if (trim(OP).eq."MPI_MAX")then
-       call MPI_REDUCE(send_buff,recv_buff,count,MPI_INT,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+       call MPI_REDUCE(send_buff,recv_buff,count,MPI_INT,MPI_MAX,0,MPI_COMM_WORLD,status1,ierr)
     elseif (trim(OP).eq."MPI_MIN")then
-       call MPI_REDUCE(send_buff,recv_buff,count,MPI_INT,MPI_MIN,0,MPI_COMM_WORLD,ierr)
+       call MPI_REDUCE(send_buff,recv_buff,count,MPI_INT,MPI_MIN,0,MPI_COMM_WORLD,status1,ierr)
     elseif (trim(OP).eq."MPI_SUM")then
-       call MPI_REDUCE(send_buff,recv_buff,count,MPI_INT,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+       call MPI_REDUCE(send_buff,recv_buff,count,MPI_INT,MPI_SUM,0,MPI_COMM_WORLD,status1,ierr)
     end if
   end subroutine COMMS_REDUCE_INT
 
@@ -147,11 +167,11 @@ contains
     character(*) :: OP
 
     if (trim(OP).eq."MPI_MAX")then
-       call MPI_REDUCE(send_buff,recv_buff,count,MPI_FLOAT,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+       call MPI_REDUCE(send_buff,recv_buff,count,MPI_FLOAT,MPI_MAX,0,MPI_COMM_WORLD,status1,ierr)
     elseif (trim(OP).eq."MPI_MIN")then
-       call MPI_REDUCE(send_buff,recv_buff,count,MPI_FLOAT,MPI_MIN,0,MPI_COMM_WORLD,ierr)
+       call MPI_REDUCE(send_buff,recv_buff,count,MPI_FLOAT,MPI_MIN,0,MPI_COMM_WORLD,status1,ierr)
     elseif (trim(OP).eq."MPI_SUM")then
-       call MPI_REDUCE(send_buff,recv_buff,count,MPI_FLOAT,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+       call MPI_REDUCE(send_buff,recv_buff,count,MPI_FLOAT,MPI_SUM,0,MPI_COMM_WORLD,status1,ierr)
     end if
   end subroutine COMMS_REDUCE_REAL
 
@@ -162,11 +182,11 @@ contains
     character(*) :: OP
 
     if (trim(OP).eq."MPI_MAX")then
-       call MPI_REDUCE(send_buff,recv_buff,count,MPI_DOUBLE,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+       call MPI_REDUCE(send_buff,recv_buff,count,MPI_DOUBLE,MPI_MAX,0,MPI_COMM_WORLD,status1,ierr)
     elseif (trim(OP).eq."MPI_MIN")then
-       call MPI_REDUCE(send_buff,recv_buff,count,MPI_DOUBLE,MPI_MIN,0,MPI_COMM_WORLD,ierr)
+       call MPI_REDUCE(send_buff,recv_buff,count,MPI_DOUBLE,MPI_MIN,0,MPI_COMM_WORLD,status1,ierr)
     elseif (trim(OP).eq."MPI_SUM")then
-       call MPI_REDUCE(send_buff,recv_buff,count,MPI_DOUBLE,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+       call MPI_REDUCE(send_buff,recv_buff,count,MPI_DOUBLE,MPI_SUM,0,MPI_COMM_WORLD,status1,ierr)
     end if
   end subroutine COMMS_REDUCE_DOUBLE
 
@@ -179,11 +199,11 @@ contains
     character(*) :: OP
     
     if (trim(OP).eq."MPI_MAX")then
-       call MPI_REDUCE(send_buff,recv_buff,count,MPI_INT,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+       call MPI_REDUCE(send_buff,recv_buff,count,MPI_INT,MPI_MAX,0,MPI_COMM_WORLD,status1,ierr)
     elseif (trim(OP).eq."MPI_MIN")then
-       call MPI_REDUCE(send_buff,recv_buff,count,MPI_INT,MPI_MIN,0,MPI_COMM_WORLD,ierr)
+       call MPI_REDUCE(send_buff,recv_buff,count,MPI_INT,MPI_MIN,0,MPI_COMM_WORLD,status1,ierr)
     elseif (trim(OP).eq."MPI_SUM")then
-       call MPI_REDUCE(send_buff,recv_buff,count,MPI_INT,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+       call MPI_REDUCE(send_buff,recv_buff,count,MPI_INT,MPI_SUM,0,MPI_COMM_WORLD,status1,ierr)
     end if
   end subroutine COMMS_REDUCE_INT_ARRAY
 
@@ -194,11 +214,11 @@ contains
     character(*) :: OP
 
     if (trim(OP).eq."MPI_MAX")then
-       call MPI_REDUCE(send_buff,recv_buff,count,MPI_FLOAT,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+       call MPI_REDUCE(send_buff,recv_buff,count,MPI_FLOAT,MPI_MAX,0,MPI_COMM_WORLD,status1,ierr)
     elseif (trim(OP).eq."MPI_MIN")then
-       call MPI_REDUCE(send_buff,recv_buff,count,MPI_FLOAT,MPI_MIN,0,MPI_COMM_WORLD,ierr)
+       call MPI_REDUCE(send_buff,recv_buff,count,MPI_FLOAT,MPI_MIN,0,MPI_COMM_WORLD,status1,ierr)
     elseif (trim(OP).eq."MPI_SUM")then
-       call MPI_REDUCE(send_buff,recv_buff,count,MPI_FLOAT,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+       call MPI_REDUCE(send_buff,recv_buff,count,MPI_FLOAT,MPI_SUM,0,MPI_COMM_WORLD,status1,ierr)
     end if
   end subroutine COMMS_REDUCE_REAL_ARRAY
 
@@ -209,11 +229,11 @@ contains
     character(*) :: OP
 
     if (trim(OP).eq."MPI_MAX")then
-       call MPI_REDUCE(send_buff,recv_buff,count,MPI_DOUBLE,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+       call MPI_REDUCE(send_buff,recv_buff,count,MPI_DOUBLE,MPI_MAX,0,MPI_COMM_WORLD,status1,ierr)
     elseif (trim(OP).eq."MPI_MIN")then
-       call MPI_REDUCE(send_buff,recv_buff,count,MPI_DOUBLE,MPI_MIN,0,MPI_COMM_WORLD,ierr)
+       call MPI_REDUCE(send_buff,recv_buff,count,MPI_DOUBLE,MPI_MIN,0,MPI_COMM_WORLD,status1,ierr)
     elseif (trim(OP).eq."MPI_SUM")then
-       call MPI_REDUCE(send_buff,recv_buff,count,MPI_DOUBLE,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+       call MPI_REDUCE(send_buff,recv_buff,count,MPI_DOUBLE,MPI_SUM,0,MPI_COMM_WORLD,status1,ierr)
     end if
   end subroutine COMMS_REDUCE_DOUBLE_ARRAY
 
@@ -227,37 +247,37 @@ contains
   subroutine COMMS_BCAST_INT(start_buff,count)
     integer :: count
     integer :: start_buff
-    call MPI_BCAST(start_buff, count,MPI_INT,0,MPI_COMM_WORLD,ierr)
+    call MPI_BCAST(start_buff, count,MPI_INT,0,MPI_COMM_WORLD,status1,ierr)
   end subroutine COMMS_BCAST_INT
 
   subroutine COMMS_BCAST_REAL(start_buff,count)
     integer :: count
     real :: start_buff
-    call MPI_BCAST(start_buff, count,MPI_FLOAT,0,MPI_COMM_WORLD,ierr)
+    call MPI_BCAST(start_buff, count,MPI_FLOAT,0,MPI_COMM_WORLD,status1,ierr)
   end subroutine COMMS_BCAST_REAL
 
   subroutine COMMS_BCAST_DOUBLE(start_buff,count)
     integer :: count
     double precision :: start_buff
-    call MPI_BCAST(start_buff, count,MPI_DOUBLE,0,MPI_COMM_WORLD,ierr)
+    call MPI_BCAST(start_buff, count,MPI_DOUBLE,0,MPI_COMM_WORLD,status1,ierr)
   end subroutine COMMS_BCAST_DOUBLE
   !ARRAY
   subroutine COMMS_BCAST_INT_ARRAY(start_buff,count)
     integer :: count
     integer,dimension(count) :: start_buff
-    call MPI_BCAST(start_buff, count,MPI_INT,0,MPI_COMM_WORLD,ierr)
+    call MPI_BCAST(start_buff, count,MPI_INT,0,MPI_COMM_WORLD,status1,ierr)
   end subroutine COMMS_BCAST_INT_ARRAY
 
   subroutine COMMS_BCAST_REAL_ARRAY(start_buff,count)
     integer :: count
     real,dimension(count) :: start_buff
-    call MPI_BCAST(start_buff, count,MPI_FLOAT,0,MPI_COMM_WORLD,ierr)
+    call MPI_BCAST(start_buff, count,MPI_FLOAT,0,MPI_COMM_WORLD,status1,ierr)
   end subroutine COMMS_BCAST_REAL_ARRAY
 
   subroutine COMMS_BCAST_DOUBLE_ARRAY(start_buff,count)
     integer :: count
     double precision,dimension(count) :: start_buff
-    call MPI_BCAST(start_buff, count,MPI_DOUBLE,0,MPI_COMM_WORLD,ierr)
+    call MPI_BCAST(start_buff, count,MPI_DOUBLE,0,MPI_COMM_WORLD,status1,ierr)
   end subroutine COMMS_BCAST_DOUBLE_ARRAY
 
 
@@ -275,4 +295,4 @@ contains
 
 
 
-end module COMMS_MPI
+end module COMMS

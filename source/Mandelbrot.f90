@@ -7,10 +7,10 @@ program Mandelbrot
   use files
   use fractal
   use io
-  use comms_mpi
+  use comms
   use ISO_FORTRAN_ENV
   implicit none
-!  include 'mpif.h'
+  !  include 'mpif.h'
   integer :: N=1000,Max_iter=50 ,i,j,k,l=0,m, colour_ref,colour_ref_buff,i_buff,j_buff, rank_buff,comp_count,z_counter=21
   integer :: e_default=2,k_buff,m_buff
   real,allocatable,dimension(:) :: Buffer_mpi,rank_0_buff
@@ -18,8 +18,7 @@ program Mandelbrot
   complex :: c,z,c_buff=(0,0),julia_param ! the complex number to be used
   double precision :: lower_X=-2.0,upper_X=0.5,lower_Y=-1.25,upper_Y=1.25,dx,dy, init_time,init_buff,fini_time,fini_buff
   double precision ::start, finish ,inp_st, inp_fn,int_time,par_start,par_end,par_time=0.0,tot_par_time,total_proc_times
-  integer::  nprocs, rank, rem 
-  integer, dimension(MPI_STATUS_SIZE):: status1
+  integer::  nprocs=1, rank=0, rem 
   integer::narg,cptArg,buddah_counter=0,buddah_buff_counter !#of arg & counter of arg
   character(len=20)::name !Arg name
   logical::lookfor_N=.FALSE.,lookfor_MAX_ITER=.FALSE.,lookfor_PARALLEL=.FALSE.,lookfor_lx=.FALSE.,lookfor_data=.TRUE.
@@ -28,7 +27,7 @@ program Mandelbrot
   logical::lookfor_cont
   integer:: d_t(8),budda_param
   character*10 :: b(3),clear_check
-  character(len=100)::version, compiler,arch_string,path_string, DATE,TIME,comms="MPI"
+  character(len=100)::version, compiler,arch_string,path_string, DATE,TIME
   character(len=81)::parser_version="Mandelbrot v.3.0, Z.Hawkhead"
   character(len=100)::info="Parallel code for calculating the Mandelbrot Set"
   character(len=15)::N_character,max_char,buddah_char
@@ -59,15 +58,18 @@ program Mandelbrot
 
 
 
+
+
   call date_and_time(b(1), b(2), b(3), d_t)
 
 
   !SET UP MPI ENVIRONMENT
   CALL COMMS_INIT()
+  
   call COMMS_RANK(rank)             
   call COMMS_SIZE(nprocs)   
   start=COMMS_WTIME()! =MPI_WTIME()
-  
+
 
 !!! Define the parameters from the param.mand
 
@@ -247,12 +249,10 @@ program Mandelbrot
   allocate(Buffer_mpi(1:N))
 
   ! BROADCAST INPUT TO SLAVES
-  call MPI_BCAST(N,1,MPI_INT,0,MPI_COMM_WORLD,ierr)
-  call MPI_BCAST(dx,1,MPI_FLOAT,0,MPI_COMM_WORLD,ierr) 
-  call MPI_BCAST(dy,1,MPI_FLOAT,0,MPI_COMM_WORLD,ierr) 
-  call MPI_BCAST(Max_iter,1,MPI_INT,0,MPI_COMM_WORLD,ierr)
-  
-
+  call COMMS_BCAST_INT(N,1)
+  call COMMS_BCAST_DOUBLE(dx,1)
+  call COMMS_BCAST_DOUBLE(dy,1)
+  call COMMS_BCAST_INT(Max_iter,1)
 
   ! Check for Buddahbrot continuation
   if (rank.eq.0)then
@@ -286,7 +286,7 @@ program Mandelbrot
         open(unit=2,file="data.mand",form="UNFORMATTED")
      end if
      open(unit=1,file="out.mand",RECL=8192)
-     call header(1,parser_version,arch_string,comms)
+     call header(1,parser_version,arch_string)
 
      write(1,1000) months(d_t(2)),d_t(3),d_t(1),d_t(5),d_t(6),d_t(7),d_t(8)
 1000 format (' Calculation started:  ', A, 1x, i2.2, 1x, i4.4, ' at ',i2.2, ':', i2.2, ':', i2.2 ,".",i3.3)
@@ -380,8 +380,11 @@ program Mandelbrot
      end if
      write(1,*)
      write(1,*) "Starting Calculation:"
-     if (nprocs.gt.1 .and. b_for_carrying.eq..false.)then
-        write(1,*)"************************************************************************************"
+
+     if (nprocs.gt.1)then
+        if (b_for_carrying.eqv..false.)then
+           write(1,*)"************************************************************************************"
+        end if
      end if
   end if
 
@@ -418,7 +421,7 @@ program Mandelbrot
         !z_im=z_im*(upper_y-lower_y)+lower_y
 
 
-        !        c=cmplx(z_re,z_im)
+        !c=cmplx(z_re,z_im)
         c=random_pos()
 
         if (mand(max_iter,z,c,e_default).gt.max_iter)then
@@ -441,7 +444,7 @@ program Mandelbrot
               if (k.lt.N.and.k.gt.0)then
                  !set(k,m)=set(k,m)+10
                  buddah_set(m,k)=buddah_set(m,k)+N
-                
+
               end if
            end if
 
@@ -451,12 +454,7 @@ program Mandelbrot
 
 
      if (rank.gt.0)then
-
-
-
-        !CALL COMMS_SEND_REAL_ARRAY(buddah_set,N,N,0,rank)
-
-
+        CALL COMMS_SEND_REAL_ARRAY2D(buddah_set,N,N,0,rank)
      end if
 
      if (rank.eq.0)then
@@ -468,7 +466,7 @@ program Mandelbrot
         do j=1,nprocs-1
 
 
-           !CALL COMMS_RECV_REAL_ARRAY(buddah_buff,N,N,j,j)
+           CALL COMMS_RECV_REAL_ARRAY2D(buddah_buff,N,N,j,j)
            !        print*, "rec"
            set=set+buddah_buff
         end do
@@ -518,19 +516,19 @@ program Mandelbrot
               l=l+1
 
               par_start=COMMS_WTIME() ! Time the parallel stuff
-              print*, "rec"
+
               CALL COMMS_RECV_INT(i_buff,1,m,1)
               CALL COMMS_RECV_REAL_ARRAY(rank_0_buff,N+1,m,1)
               par_end=COMMS_WTIME()
               par_time=par_time+par_end-par_start
-              print*, "RECV"
+
 
               set(i_buff,1:N)=rank_0_buff
               ! Timing the steps           
               do comp_count=10,100,10
                  if (real(l)/real(N).gt.real(comp_count)/100-1./(real(N)*nprocs) .and. &
                       real(l)/real(N).lt.real(comp_count)/100+1./(real(N)*nprocs))then 
-                    int_time=MPI_WTIME()              
+                    int_time=COMMS_WTIME()              
                     write(1,200) comp_count,int_time-start
 200                 format(" Calculation ",i2,"% complete:                      ",F10.5," s")
 
@@ -539,9 +537,9 @@ program Mandelbrot
            end do
         else
            par_start=COMMS_WTIME()
-           
+
            CALL COMMS_SEND_INT(i,1,0,1)
-           
+
            CALL COMMS_SEND_REAL_ARRAY(Buffer_mpi,N+1,0,1)
            par_end=COMMS_WTIME()
            par_time=par_time+par_end-par_start
@@ -599,9 +597,11 @@ program Mandelbrot
      write(1,*)
      eff=100.-par_time*100./total_proc_times
      eff=100.-eff/95.
-     if (nprocs.gt.1 .and. b_for_carrying.eq..false.)then
-34      write(1,1005) "Parallel Effciency:",eff,"%"
-1005    format(1x,A,32x,f6.2,1x,A)
+     if (nprocs.gt.1)then
+        if(b_for_carrying.eqv..false.)then
+34         write(1,1005) "Parallel Effciency:",eff,"%"
+1005       format(1x,A,32x,f6.2,1x,A)
+        end if
      end if
      if (b_for_carrying)then 
         write(1,304) "Buddahbrot Efficiency:",100.*real(buddah_buff_counter)/real(budda_param),"%"
