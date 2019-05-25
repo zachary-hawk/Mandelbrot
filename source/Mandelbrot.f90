@@ -343,8 +343,8 @@ program Mandelbrot
         else
            write(1,78)"Value of c:",z_re,z_im,"i"
         end if
-77      format(1x,A,34x,f5.3,A,f5.3,A)
-78      format(1x,A,34x,f5.3,f6.3,A)
+77      format(1x,A,33x,f6.3,A,f5.3,A)
+78      format(1x,A,33x,f6.3,f6.3,A)
 
      end if
 

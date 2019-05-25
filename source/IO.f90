@@ -213,7 +213,7 @@ contains
     write(*,*) 
 
     write(*,73) adjustl("EXPONENT"),":","Specify exponent for calculation"
-    write(*,78) "Allowed",":","any int > 1"
+    write(*,78) "Allowed",":","any"
     write(*,76) "Default",":", e_default_d
     write(*,*)
 
@@ -252,7 +252,7 @@ contains
     write(*,74) "Default",":","TRUE"
     write(*,*)
 
-    write(*,73) adjustl("WRITE_EFFICIECNY"),":","Write efficiency data"
+    write(*,73) adjustl("WRITE_EFFICIENCY"),":","Write efficiency data"
     write(*,78) "Allowed",":","TRUE,FASLE"
     write(*,74) "Default",":","FALSE"
     write(*,*)

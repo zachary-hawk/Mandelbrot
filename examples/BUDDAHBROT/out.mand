@@ -15,23 +15,24 @@
  Communications architechture: MPI
  MPI Version: Open MPI v4.0.1
  
- Calculation started:  May 25 2019 at 14:13:15.160
+ Calculation started:  May 25 2019 at 14:19:42.573
  
  Reading Parameters file
  
  ************************************ Parameters ************************************
  
- Calculation Type:                              Mandelbrot
+ Calculation Type:                              Buddahbrot
  
+ No. Initial positions:                             100000
  No. Grid points:                                     1000
- No. Iteration:                                        300
+ No. Iteration:                                      10000
  Exponent:                                            2.00
  
- Extent: X:                                          -2.00      0.50
+ Extent: X:                                          -2.00      0.75
          Y:                                          -1.25      1.25
  
  Calculated in Parallel
- No. Processes:                                          4
+ No. Processes:                                          8
  
  Colouring by Processor:                               Off
  Writing efficiency data:                              Off
@@ -39,17 +40,9 @@
  
  Starting Calculation:
  ************************************************************************************
- Calculation 10% complete:                         0.06405 s
- Calculation 20% complete:                         0.11442 s
- Calculation 30% complete:                         0.16272 s
- Calculation 40% complete:                         0.20627 s
- Calculation 50% complete:                         0.24760 s
- Calculation 60% complete:                         0.27749 s
- Calculation 70% complete:                         0.29509 s
- ************************************************************************************
- Initialisation Time:                              0.00161 s
- Total Calculation Time:                           0.32852 s
+ Initialisation Time:                              0.00152 s
+ Total Calculation Time:                          72.39177 s
  ************************************************************************************
  
- Parallel Effciency:                                 99.25 %
+ Buddahbrot Efficiency:                              40.48 %
  Calculation written to file "data.mand"

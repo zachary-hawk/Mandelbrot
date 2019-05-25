@@ -12,7 +12,7 @@ program Mandelbrot
   implicit none
   !  include 'mpif.h'
   integer :: N=1000,Max_iter=50 ,i,j,k,l=0,m, colour_ref,colour_ref_buff,i_buff,j_buff, rank_buff,comp_count,z_counter=21
-  integer :: e_default=2,k_buff,m_buff
+  integer :: k_buff,m_buff
   real,allocatable,dimension(:) :: Buffer_mpi,rank_0_buff
   real,allocatable,dimension(:,:):: set,buddah_set,buddah_buff
   complex :: c,z,c_buff=(0,0),julia_param ! the complex number to be used
@@ -35,7 +35,7 @@ program Mandelbrot
   character(20)::z_char="[0.0:0.0]",z_re_char,z_im_char
   character(len=3),dimension(12)::months
   integer::data_size
-
+  real :: e_default
   months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
 
@@ -65,10 +65,12 @@ program Mandelbrot
 
   !SET UP MPI ENVIRONMENT
   CALL COMMS_INIT()
-  
+
   call COMMS_RANK(rank)             
   call COMMS_SIZE(nprocs)   
   start=COMMS_WTIME()! =MPI_WTIME()
+
+
 
 
 !!! Define the parameters from the param.mand
@@ -321,6 +323,7 @@ program Mandelbrot
 2002 format(1x,A,30x,A)
 
 91   format(1x,A,42x,i6)
+92   format(1x,A,43x,f5.2)
      if (b_for_carrying)then
         write(buddah_char,'(i12)')budda_param
         write(1,3) "No. Initial positions:",trim(buddah_char)
@@ -333,7 +336,7 @@ program Mandelbrot
      write(max_char,'(i12)')Max_iter
      write(1,2) "No. Iteration:",trim(max_char)
 2    format(1x,A,31x,A)
-     write(1,91)"Exponent:",e_default
+     write(1,92)"Exponent:",e_default
      if (j_for_carrying)then
         if (z_im.gt.0)then
            write(1,77)"Value of c:",z_re,"+",z_im,"i"
@@ -424,14 +427,14 @@ program Mandelbrot
         !c=cmplx(z_re,z_im)
         c=random_pos()
 
-        if (mand(max_iter,z,c,e_default).gt.max_iter)then
+        if (mand(max_iter,z,c,2.).gt.max_iter)then
            cycle
 
         end if
         buddah_counter=buddah_counter+1
         z=cmplx(0,0)
         do j=1,Max_iter
-           z=z**e_default+c
+           z=z**2+c
            if (abs(z).gt.4)then
               exit
            end if
@@ -496,6 +499,7 @@ program Mandelbrot
               k=julia(Max_iter,z,c,e_default)
            else
               z=(0,0)
+
               k=mand(Max_iter,z,c,e_default)
            end if
 
@@ -616,7 +620,7 @@ program Mandelbrot
      !**********FOLLOWING LINES FOR PARALLEL EFFICIENCY TESTING*************
      if (lookfor_eff)then
         open(unit=3,file="efficiency.mand",form="formatted",status="unknown",access="append")
-        write(3,*)nprocs,inp_fn-inp_st,"#N=",N," MPI"
+        write(3,*)nprocs,inp_fn-inp_st,"#N=",N,comms_arch
         close(3)
         write(1,*) "Efficiency data writen to file 'efficiency.mand'"
      end if
