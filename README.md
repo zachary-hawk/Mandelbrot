@@ -6,7 +6,7 @@ Z.Hawkhead
 MANDELBROT
 ----------
 
-Parallel code for producing the Mandelbrot set.
+Parallel code for producing Mandelbrot set, Julia sets and the Buddahbrot.
 
 
 PREREQUISITS
