@@ -9,16 +9,6 @@ module COMMS
   
 contains
 
-  subroutine COMMS_BARRIER()
-    call MPI_BARRIER(MPI_COMM_WORLD)
-
-  end subroutine COMMS_BARRIER
-
-
-
-
-
-
   subroutine COMMS_VERSION(maj_mpi,min_mpi)
     integer, intent(inout):: maj_mpi,min_mpi
 
@@ -220,9 +210,8 @@ contains
     double precision,intent(inout) :: recv_buff
     double precision :: send_buff
     character(*) :: OP
-    
+
     if (trim(OP).eq."MPI_MAX")then
-    
        call MPI_REDUCE(send_buff,recv_buff,count,MPI_DOUBLE,MPI_MAX,0,MPI_COMM_WORLD,status1,ierr)
     elseif (trim(OP).eq."MPI_MIN")then
        call MPI_REDUCE(send_buff,recv_buff,count,MPI_DOUBLE,MPI_MIN,0,MPI_COMM_WORLD,status1,ierr)

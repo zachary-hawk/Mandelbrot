@@ -12,7 +12,7 @@ program Mandelbrot
   implicit none
   !  include 'mpif.h'
   integer :: N=1000,Max_iter=50 ,i,j,k,l=0,m, colour_ref,colour_ref_buff,i_buff,j_buff, rank_buff,comp_count,z_counter=21
-  integer :: k_buff,m_buff,buddah_iter
+  integer :: k_buff,m_buff
   real,allocatable,dimension(:) :: Buffer_mpi,rank_0_buff
   real,allocatable,dimension(:,:):: set,buddah_set,buddah_buff
   complex :: c,z,c_buff=(0,0),julia_param ! the complex number to be used
@@ -410,8 +410,10 @@ program Mandelbrot
      write(1,*)
      write(1,*) "Starting Calculation:"
 
-     if (nprocs.gt.1 .or.b_for_carrying.eqv..true.)then
-        write(1,*)"************************************************************************************"
+     if (nprocs.gt.1)then
+        if (b_for_carrying.eqv..false.)then
+           write(1,*)"************************************************************************************"
+        end if
      end if
   end if
 
@@ -436,44 +438,17 @@ program Mandelbrot
      !end if
      !call MPI_BCAST(set,N**2,MPI_INT,0,MPI_COMM_WORLD,ierr)
      tolerance=1/(real(budda_param)/real(nprocs))
-
-
-     do buddah_iter=1,int(real(budda_param)/(real(nprocs)))
-
-
-
-        int_time=COMMS_WTIME()
-
-        !        if (rank.eq.0)then
-        frac=real(buddah_iter)/real(budda_param/nprocs)
-        !print*, buddah_iter,frac,tolerance
-        do comp_count=10,90,10
-
-           !print*,frac,comp_count,tolerance
-           if (frac.gt.real(comp_count)/100..or.&
-                frac.eq.real(comp_count)/100.)then
-              if (frac-real(comp_count)/100..lt.tolerance/2)then
-
-                 call COMMS_REDUCE_DOUBLE(int_time,par_time,1,"MPI_MAX")
-
-                 if (rank.eq.0)then
-                    write(1,200) comp_count,par_time
-                 end if
-              end if
-           endif
-        end do
-        !       end if
-
-
+     print*,budda_param
+     do i=0,budda_param/nprocs
 
         z=cmplx(0,0)
 
         !print*,"first z",z
-        !    call init_random_seed()
-        !     call random_number(z_re)
-        !      call random_number(z_im)
-        !       z_re=z_re*(upper_x-lower_x)+lower_x
-        !        z_im=z_im*(upper_y-lower_y)+lower_y
+        !call init_random_seed()
+        !call random_number(z_re)
+        !call random_number(z_im)
+        !z_re=z_re*(upper_x-lower_x)+lower_x
+        !z_im=z_im*(upper_y-lower_y)+lower_y
 
 
         !c=cmplx(z_re,z_im)
@@ -481,11 +456,8 @@ program Mandelbrot
 
         if (mand(max_iter,z,c,2.).gt.max_iter)then
            cycle
-        end if
-        !        do while (mand(max_iter,z,c,2.).gt.max_iter)
-        !           c=random_pos()
-        !        end do
 
+        end if
         buddah_counter=buddah_counter+1
         z=cmplx(0,0)
         do j=1,Max_iter
@@ -501,12 +473,34 @@ program Mandelbrot
            if (m.lt.N .and. m.gt.0)then
               if (k.lt.N.and.k.gt.0)then
                  !set(k,m)=set(k,m)+10
-                 buddah_set(m,k)=buddah_set(m,k)+1
+                 buddah_set(m,k)=buddah_set(m,k)+N
               end if
            end if
         end do
+        int_time=COMMS_WTIME()
 
 
+
+
+        print*,i
+
+        if (rank.eq.0)then
+           do comp_count=10,100,10
+              frac=real(i)/real(budda_param/nprocs)
+              !print*,frac,comp_count,tolerance
+              if (frac.gt.real(comp_count)/100..or.&
+                   frac.eq.real(comp_count)/100.)then
+                 if (frac-real(comp_count)/100..lt.tolerance )then
+
+                    !call COMMS_REDUCE_DOUBLE(int_time-start,par_time,1,"MPI_MAX")
+
+                    if (rank.eq.0)then
+                       write(1,200) comp_count,int_time!par_time
+                    end if
+                 end if
+              endif
+           end do
+        end if
 
 
 

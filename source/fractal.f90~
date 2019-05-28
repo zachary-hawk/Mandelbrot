@@ -14,7 +14,7 @@ contains
     if (e.EQ.int(e))then 
        do k=0,Max_iter
           z = z**int(e)+c
-          if (abs(z).gt.2) then
+          if (abs(z).gt.10) then
              exit
           end if
        end do
