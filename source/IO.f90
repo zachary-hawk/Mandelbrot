@@ -44,7 +44,7 @@ contains
     !
     !------------------------------------------------
 
-    integer :: IOstatus,i,counter
+    integer :: IOstatus=0,i,counter
     logical :: file_exist
     character(len=20) :: chara,name,val,z_re_char,z_im_char
     character(len=1) :: junk
@@ -81,21 +81,18 @@ contains
     j_for_carrying=j_for_carrying_d
     b_for_carrying=b_for_carrying_d
 
-
-
     inquire(file="param.mand", EXIST=file_exist)
-
     if (file_exist)then 
-       open(unit=24,file="param.mand")
+       open(unit=24,file="param.mand",status="OLD",access="stream",form="formatted")
        param=.TRUE.
        do while (IOstatus .eq. 0) 
+
           read(24,*,IOSTAT=IOstatus)name,junk,val!chara
 
           name=string_tolower(name)
           val=string_tolower(val)
-
           if (adjustl(name).eq."grid_size")then
-             read(val,'(i5)')N
+             read(val,'(i6)')N
           elseif (name.eq."max_iter")then
              read(val,'(i12)')max_iter
           elseif (name.eq."exponent")then
@@ -162,14 +159,14 @@ contains
              end if
           elseif (name(1:1).eq."#".or.name(1:1).eq."!")then
              cycle
-             
+
           else
              write(*,*) "Warning: Unknown parameter- ", name
 
           end if
        end do
     end if
-!call params()
+    !call params()
   end subroutine READ_PARAMETERS
 
 
@@ -282,6 +279,15 @@ contains
        endif
     enddo
   end function string_tolower
+
+
+  subroutine print_dry(file)
+    integer :: file
+    write(file,*) "                      ***************************************"
+    write(file,*) "                      *     Dryrun Complete: Finishing      *"
+    write(file,*) "                      ***************************************"
+    stop
+  end subroutine print_dry
 
 
 

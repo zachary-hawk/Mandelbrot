@@ -18,13 +18,13 @@ program Mandelbrot
   complex :: c,z,c_buff=(0,0),julia_param ! the complex number to be used
   double precision :: lower_X=-2.0,upper_X=0.5,lower_Y=-1.25,upper_Y=1.25,dx,dy, init_time,init_buff,fini_time,fini_buff
   double precision ::start, finish ,inp_st, inp_fn,int_time,par_start,par_end,par_time=0.0,tot_par_time,total_proc_times
-  integer::  nprocs=1, rank=0, rem 
+  integer::  nprocs, rank, rem 
   integer::narg,cptArg,buddah_counter=0,buddah_buff_counter !#of arg & counter of arg
   character(len=20)::name !Arg name
   logical::lookfor_N=.FALSE.,lookfor_MAX_ITER=.FALSE.,lookfor_PARALLEL=.FALSE.,lookfor_lx=.FALSE.,lookfor_data=.TRUE.
   logical::lookfor_ux=.FALSE.,lookfor_ly=.FALSE.,lookfor_uy=.FALSE.,lookfor_eff=.FALSE.,lookfor_c=.FALSE.,lookfor_j=.FALSE.
   logical::lookfor_m=.FALSE.,J_FOR_CARRYING=.FALSE.,lookfor_buddah=.FALSE.,B_FOR_CARRYING=.FALSE.,param,continuation=.FALSE.
-  logical::lookfor_cont,args_bool=.FALSE.
+  logical::lookfor_cont,args_bool=.FALSE.,lookfor_dry
   integer:: d_t(8),budda_param
   character*10 :: b(3),clear_check
   character(len=100)::version, compiler,arch_string,path_string, DATE,TIME
@@ -35,7 +35,7 @@ program Mandelbrot
   character(20)::z_char="[0.0:0.0]",z_re_char,z_im_char
   character(len=3),dimension(12)::months
   integer::data_size
-  real :: e_default,tolerance,frac
+  real :: e_default,tolerance,frac,memory_size=0,memory_buffer=0
   months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
 
@@ -59,7 +59,6 @@ program Mandelbrot
 
 
 
-
   call date_and_time(b(1), b(2), b(3), d_t)
 
 
@@ -74,10 +73,14 @@ program Mandelbrot
 
 
 !!! Define the parameters from the param.mand
-
+  ! if(rank.eq.0)then
   call READ_PARAMETERS(N,Max_iter,e_default,budda_param,z_re,z_im,lower_x,lower_y, upper_x,&
        upper_y,lookfor_parallel,lookfor_data,lookfor_eff,j_for_carrying,b_for_carrying,param,&
        continuation)
+
+  !  end if
+
+  !call COMMS_BARRIER()
 
 
   ! Set up Commandline Parser
@@ -142,6 +145,9 @@ program Mandelbrot
            write(*,*) trim(info)
            call params()
            stop
+        case("--dry")
+           lookfor_dry=.TRUE.
+
         case default
            if (lookfor_N) then
               name=adjustl(name)
@@ -243,13 +249,33 @@ program Mandelbrot
      N=N+1
   end do
 
+
+
   ! Allocating arrays
   if (rank.eq.0) then
      allocate(set(1:N,1:N))
      allocate(rank_0_buff(1:N))
+     if (b_for_carrying) then
+        allocate(buddah_buff(1:N,1:N))
+     end if
+     !     print*,sizeof(set)
+     !     print*,sizeof(rank_0_buff)
+     memory_size=memory_size+sizeof(set)*1e-6
+     memory_size=memory_size+sizeof(rank_0_buff)*1e-6
   end if
-
+  if(b_for_carrying)then
+     allocate(buddah_set(1:N,1:N))
+     !     print*, sizeof(buddah_set)
+     memory_size=memory_size+sizeof(buddah_set)*1e-6
+  end if
   allocate(Buffer_mpi(1:N))
+  memory_size=memory_size+sizeof(buffer_mpi)*1e-6
+
+
+
+  !Check the memory size
+  call COMMS_REDUCE_REAL(memory_size,memory_buffer,1,"MPI_SUM")
+
 
   ! BROADCAST INPUT TO SLAVES
   call COMMS_BCAST_INT(N,1)
@@ -301,121 +327,9 @@ program Mandelbrot
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! FILE WRITTING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
   if (rank.eq.0)then
-
-     !write(*,*) compiler_version()
-
-     !Initialise Files
-     if(lookfor_data)then     
-        open(unit=2,file="data.mand",form="UNFORMATTED")
-     end if
-     open(unit=1,file="out.mand",RECL=8192)
-     call header(1,parser_version,arch_string)
-
-     write(1,1000) months(d_t(2)),d_t(3),d_t(1),d_t(5),d_t(6),d_t(7),d_t(8)
-1000 format (' Calculation started:  ', A, 1x, i2.2, 1x, i4.4, ' at ',i2.2, ':', i2.2, ':', i2.2 ,".",i3.3)
-     write(1,*)
-     if (param)then
-        write(1,*) "Reading Parameters file"
-     else
-        write(1,*) "No Parameters file found"
-     end if
-     if (args_bool)then
-        write(1,*) "Using commandline parameters"
-     end if
-     if(b_for_carrying)then
-        if(continuation)then
-           write(1,*)"Restarting from previous calculation"
-        end if
-     end if
-     write(1,*)
-     write(1,*)"************************************ Parameters ************************************"
-
-     if (j_for_carrying)then
-        write(1,*)
-        write(1,2001) "Calculation Type:","Julia"
-     else if (b_for_carrying)then
-
-        write(1,*)
-        write(1,2002) "Calculation Type:","Buddahbrot"
-
-     else
-        write(1,*)
-        write(1,2002) "Calculation Type:","Mandelbrot"
-     endif
-     write(1,*)
-2001 format(1x,A,35x,A)
-2002 format(1x,A,30x,A)
-
-91   format(1x,A,42x,i6)
-92   format(1x,A,43x,f5.2)
-     if (b_for_carrying)then
-        write(buddah_char,'(i12)')budda_param
-        write(1,3) "No. Initial positions:",trim(buddah_char)
-3       format(1x,A,23x,A,6x)
-     end if
-     write(N_character,'(i6)')N    
-     write(1,1) "No. Grid points:",trim(N_character)
-1    format(1x,A,35x,A,6x) !             ",i6," Grid points")x
-
-     write(max_char,'(i12)')Max_iter
-     write(1,2) "No. Iteration:",trim(max_char)
-2    format(1x,A,31x,A)
-     write(1,92)"Exponent:",e_default
-     if (j_for_carrying)then
-        if (z_im.gt.0)then
-           write(1,77)"Value of c:",z_re,"+",z_im,"i"
-        else
-           write(1,78)"Value of c:",z_re,z_im,"i"
-        end if
-77      format(1x,A,33x,f6.3,A,f5.3,A)
-78      format(1x,A,33x,f6.3,f6.3,A)
-
-     end if
-
-     write(1,*)    
-     write(1,75) lower_X,upper_X
-     write(1,76) lower_Y,upper_Y
-75   format(" Extent: X:                                     ",f10.2,f10.2)
-76   format("         Y:                                     ",f10.2,f10.2)
-     write(1,*)
-     if (nprocs.gt.1)then
-
-        write(1,*) "Calculated in Parallel"
-        write(1,400) nprocs
-400     format(" No. Processes:                                         ",i2)
-        write(1,*)
-
-
-        if (lookfor_PARALLEL .and. lookfor_data .and.b_for_carrying) then 
-           write(1,*) "Colouring by processor:                                On"
-        else 
-           write(1,*) "Colouring by Processor:                               Off"
-        end if
-     else
-        write(1,*) "Calculated in Serial"
-     end if
-
-     if (lookfor_eff)then
-        write(1,*) "Writing efficiency data:                               On"
-     else 
-        write(1,*) "Writing efficiency data:                              Off"
-     end if
-     if (lookfor_data)then
-        write(1,*) "Writing data:                                          On"
-     else 
-        write(1,*) "Writing data:                                         Off"
-     end if
-     write(1,*)
-     write(1,*) "Starting Calculation:"
-
-     if (nprocs.gt.1 .or.b_for_carrying.eqv..true.)then
-        write(1,*)"************************************************************************************"
-     end if
+     call File()
   end if
-
-
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
@@ -431,7 +345,7 @@ program Mandelbrot
   if (b_for_carrying)then
 
      !if (rank.eq.0) then
-     allocate(buddah_set(1:N,1:N))
+
      buddah_set=0
      !end if
      !call MPI_BCAST(set,N**2,MPI_INT,0,MPI_COMM_WORLD,ierr)
@@ -457,7 +371,7 @@ program Mandelbrot
                  call COMMS_REDUCE_DOUBLE(int_time,par_time,1,"MPI_MAX")
 
                  if (rank.eq.0)then
-                    write(1,200) comp_count,par_time
+                    write(1,200) comp_count,par_time-start
                  end if
               end if
            endif
@@ -500,29 +414,23 @@ program Mandelbrot
 
            if (m.lt.N .and. m.gt.0)then
               if (k.lt.N.and.k.gt.0)then
+                 if (buddah_set(m,k).eq.0)then
+                    !buddah_set(m,k)=10
+                 end if
                  !set(k,m)=set(k,m)+10
-                 buddah_set(m,k)=buddah_set(m,k)+1
+                 buddah_set(m,k)=buddah_set(m,k)+10!/(10+buddah_set(m,k))
               end if
            end if
         end do
-
-
-
-
-
-
-
      end do
      !     print*, buddah_set,rank
 
-
      if (rank.gt.0)then
         CALL COMMS_SEND_REAL_ARRAY2D(buddah_set,N,N,0,rank)
+
      end if
 
      if (rank.eq.0)then
-
-        allocate(buddah_buff(1:N,1:N))
 
         set=set+buddah_set
 
@@ -530,18 +438,12 @@ program Mandelbrot
 
 
            CALL COMMS_RECV_REAL_ARRAY2D(buddah_buff,N,N,j,j)
-           !        print*, "rec"
+           !         print*, "rec",j
            set=set+buddah_buff
         end do
+        set=set/maxval(set)
+        deallocate(buddah_buff)
      end if
-     !     call MPI_REDUCE(buddah_set,set,N**2,MPI_FLOAT,MPI_SUM,0,MPI_COMM_WORLD)
-     ! print*,"after"
-
-
-     !    if (rank.eq.0)then
-     !      set=buddah_set
-     !  end if
-
 
 
      !and the Mandelbrot and Julia 
@@ -575,30 +477,19 @@ program Mandelbrot
         end do
 
         if (rank.eq.0) then 
+
            set(i,1:N)=Buffer_mpi
            do m=1,nprocs-1
               l=l+1
-
               par_start=COMMS_WTIME() ! Time the parallel stuff
 
               CALL COMMS_RECV_INT(i_buff,1,m,1)
               CALL COMMS_RECV_REAL_ARRAY(rank_0_buff,N+1,m,1)
               par_end=COMMS_WTIME()
               par_time=par_time+par_end-par_start
-
-
               set(i_buff,1:N)=rank_0_buff
-              ! Timing the steps           
-              do comp_count=10,100,10
-                 if (real(l)/real(N).gt.real(comp_count)/100-1./(real(N)*nprocs) .and. &
-                      real(l)/real(N).lt.real(comp_count)/100+1./(real(N)*nprocs))then 
-                    int_time=COMMS_WTIME()              
-                    write(1,200) comp_count,int_time-start
-200                 format(" Calculation ",i2,"% complete:                      ",F10.5," s")
-
-                 end if
-              end do
            end do
+200        format(" Calculation ",i2,"% complete:                      ",F10.5," s")
         else
            par_start=COMMS_WTIME()
 
@@ -608,6 +499,27 @@ program Mandelbrot
            par_end=COMMS_WTIME()
            par_time=par_time+par_end-par_start
         end if
+
+
+        !Timing the steps           
+        int_time=COMMS_WTIME()
+
+        tolerance=1/(real(N)/real(nprocs))
+        frac=real(i-rank*real(N)/real(nprocs))/(real(N)/real(nprocs))
+        do comp_count=10,90,10
+           if (frac.gt.real(comp_count)/100..or.&
+                frac.eq.real(comp_count)/100.)then
+              if (frac-real(comp_count)/100..lt.tolerance/2)then
+                 call COMMS_REDUCE_DOUBLE(int_time,fini_buff,1,"MPI_MAX")
+                 if (rank.eq.0)then
+                    write(1,200) comp_count,fini_buff-start
+                 end if
+              end if
+           endif
+        end do
+
+
+
      end do
   end if
   finish = COMMS_WTIME()
@@ -633,7 +545,7 @@ program Mandelbrot
 
   !plotting perimeter points
 
-  !  open(unit=12,file="perim.mand")
+  ! open(unit=12,file="perim.mand")
   ! do i=2,N-1
   !   do j=2,N-1
   !
@@ -672,7 +584,9 @@ program Mandelbrot
 304     format(1x,A,29x,f6.2,1x,A)
      end if
      if (lookfor_data)then
+        !    print*, "about to write"
         write(2)set
+        !     print*, "written"
         close(2)
      end if
 
@@ -730,4 +644,125 @@ contains
     end if
   end subroutine errors
 
-end program Mandelbrot
+
+
+
+
+  subroutine File()
+
+    !write(*,*) compiler_version()
+
+    !Initialise Files
+    if(lookfor_data)then     
+       open(unit=2,file="data.mand",form="UNFORMATTED")
+    end if
+    open(unit=1,file="out.mand",RECL=8192,form="FORMATTED")
+    call header(1,parser_version,arch_string)
+
+    write(1,1000) months(d_t(2)),d_t(3),d_t(1),d_t(5),d_t(6),d_t(7),d_t(8)
+1000 format (' Calculation started:  ', A, 1x, i2.2, 1x, i4.4, ' at ',i2.2, ':', i2.2, ':', i2.2 ,".",i3.3)
+    write(1,*)
+    if (param)then
+       write(1,*) "Reading Parameters file"
+    else
+       write(1,*) "No Parameters file found"
+    end if
+    if (args_bool)then
+       write(1,*) "Using commandline parameters"
+    end if
+    if(b_for_carrying)then
+       if(continuation)then
+          write(1,*)"Restarting from previous calculation"
+       end if
+    end if
+    write(1,*)
+    write(1,*)"************************************ Parameters ************************************"
+
+    if (j_for_carrying)then
+       write(1,*)
+       write(1,2001) "Calculation Type:","Julia"
+    else if (b_for_carrying)then
+
+       write(1,*)
+       write(1,2002) "Calculation Type:","Buddahbrot"
+
+    else
+       write(1,*)
+       write(1,2002) "Calculation Type:","Mandelbrot"
+    endif
+    write(1,*)
+2001 format(1x,A,35x,A)
+2002 format(1x,A,30x,A)
+
+91  format(1x,A,42x,i6)
+92  format(1x,A,43x,f5.2)
+    if (b_for_carrying)then
+       write(buddah_char,'(i12)')budda_param
+       write(1,3) "No. Initial positions:",trim(buddah_char)
+3      format(1x,A,23x,A,6x)
+    end if
+    write(N_character,'(i6)')N    
+    write(1,1) "No. Grid points:",trim(N_character)
+1   format(1x,A,35x,A,6x) !             ",i6," Grid points")x
+
+    write(max_char,'(i12)')Max_iter
+    write(1,2) "No. Iteration:",trim(max_char)
+2   format(1x,A,31x,A)
+    write(1,92)"Exponent:",e_default
+    if (j_for_carrying)then
+       if (z_im.gt.0)then
+          write(1,77)"Value of c:",z_re,"+",z_im,"i"
+       else
+          write(1,78)"Value of c:",z_re,z_im,"i"
+       end if
+77     format(1x,A,33x,f6.3,A,f5.3,A)
+78     format(1x,A,33x,f6.3,f6.3,A)
+
+    end if
+
+    write(1,*)    
+    write(1,75) lower_X,upper_X
+    write(1,76) lower_Y,upper_Y
+75  format(" Extent: X:                                     ",f10.2,f10.2)
+76  format("         Y:                                     ",f10.2,f10.2)
+    write(1,*)
+    if (nprocs.gt.1)then
+
+       write(1,*) "Calculated in Parallel"
+       write(1,400) nprocs
+400    format(" No. Processes:                                         ",i2)
+       write(1,*)
+
+
+       if (lookfor_PARALLEL .and. lookfor_data .and.b_for_carrying) then 
+          write(1,*) "Colouring by Processor:                                On"
+       else 
+          write(1,*) "Colouring by Processor:                               Off"
+       end if
+    else
+       write(1,*) "Calculated in Serial"
+    end if
+
+    if (lookfor_eff)then
+       write(1,*) "Writing efficiency data:                               On"
+    else 
+       write(1,*) "Writing efficiency data:                              Off"
+    end if
+    if (lookfor_data)then
+       write(1,*) "Writing data:                                          On"
+    else 
+       write(1,*) "Writing data:                                         Off"
+    end if
+    write(1,*)
+    write(1,345) "Estimated Memory Usage:",memory_buffer,"MB"
+345 format(1x,a,25x,f9.2,1x,a)
+    write(1,*)
+    if (lookfor_dry)then
+       call print_dry(1)
+    end if
+    write(1,*) "Starting Calculation:"
+    write(1,*)"************************************************************************************"
+
+  end subroutine File
+
+end program

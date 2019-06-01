@@ -1,16 +1,16 @@
 module COMMS
-
+  !use mpi
   implicit none
   include 'mpif.h'
   integer :: ierr
   integer,parameter :: max_version_length=MPI_MAX_LIBRARY_VERSION_STRING
   integer, dimension(MPI_STATUS_SIZE):: status1
   character(3) :: comms_arch="MPI"
-  
+
 contains
 
   subroutine COMMS_BARRIER()
-    call MPI_BARRIER(MPI_COMM_WORLD)
+    call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
   end subroutine COMMS_BARRIER
 
@@ -43,7 +43,7 @@ contains
     integer :: proc_name_len
     call MPI_GET_PROCESSOR_NAME(proc_name,proc_name_len,ierr)
     print*,proc_name
-    
+
   end subroutine COMMS_PROC_NAME
 
 
@@ -69,7 +69,9 @@ contains
 
   subroutine COMMS_SIZE(nprocs)
     integer,intent(inout) :: nprocs
+
     call MPI_COMM_SIZE(MPI_COMM_WORLD,nprocs,ierr)
+
   end subroutine COMMS_SIZE
 
 
@@ -196,6 +198,7 @@ contains
     elseif (trim(OP).eq."MPI_MIN")then
        call MPI_REDUCE(send_buff,recv_buff,count,MPI_INT,MPI_MIN,0,MPI_COMM_WORLD,status1,ierr)
     elseif (trim(OP).eq."MPI_SUM")then
+       
        call MPI_REDUCE(send_buff,recv_buff,count,MPI_INT,MPI_SUM,0,MPI_COMM_WORLD,status1,ierr)
     end if
   end subroutine COMMS_REDUCE_INT
@@ -220,9 +223,9 @@ contains
     double precision,intent(inout) :: recv_buff
     double precision :: send_buff
     character(*) :: OP
-    
+
     if (trim(OP).eq."MPI_MAX")then
-    
+
        call MPI_REDUCE(send_buff,recv_buff,count,MPI_DOUBLE,MPI_MAX,0,MPI_COMM_WORLD,status1,ierr)
     elseif (trim(OP).eq."MPI_MIN")then
        call MPI_REDUCE(send_buff,recv_buff,count,MPI_DOUBLE,MPI_MIN,0,MPI_COMM_WORLD,status1,ierr)

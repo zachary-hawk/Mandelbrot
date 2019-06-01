@@ -20,6 +20,7 @@ contains
 
     if (comms_arch.eq."MPI")then
        call COMMS_LIBRARY_VERSION(mpi_c_version)
+
     end if
 
 
@@ -41,6 +42,7 @@ contains
 #ifdef arch
 #define arch_string arch
 #endif
+
 
 
 #ifdef cpu
@@ -70,7 +72,7 @@ contains
     write(file,*)
     write(file,*) "Communications architechture: ",trim(comms_arch)
     if (comms_arch.eq."MPI")then
-       write(file,*) "MPI Version: ",mpi_c_version(1:15)
+       write(file,*) "MPI Version: ",mpi_c_version(1:18)
     end if
     write(file,*)
   end subroutine header

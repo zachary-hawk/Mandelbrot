@@ -69,7 +69,7 @@ contains
 
 
     open(unit=35,file=thing//"/../bin/perim.mand")
-
+!    open(unit=35,file="perim.mand")
 
 
     call init_random_seed()
