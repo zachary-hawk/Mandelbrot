@@ -38,7 +38,7 @@ contains
     if (e.EQ.int(e))then
        do k=0,Max_iter
           z = z**int(e)+c
-          if (abs(z).gt.20) then
+          if (abs(z).gt.2) then
              exit
           end if
        end do
@@ -111,6 +111,53 @@ contains
     close(un)
     call random_seed(put=seed)
   end subroutine init_random_seed
+
+
+
+  function p(z,e) result(z_out)
+    implicit none
+    complex :: z,z_out
+    real :: e
+    if (e.eq.int(e))then
+       z_out=z**int(e)-1
+    else
+       z_out=z**(e)-1
+    endif
+  end function p
+
+  function diff(z,e) result(grad)
+    implicit none
+    real :: e
+    complex :: grad,z,dx=1E-10
+    if(e.eq.int(e))then
+       grad=e*z**(int(e)-1)
+!       grad=(p(z,e)+p(z+dx,e))/dx
+    else
+       grad=e*z**(e-1)
+
+    end if
+  end function diff
+
+
+
+  function Newton(Max_iter,z,e) result(theta)
+    implicit none
+    complex :: z
+    real :: theta,e
+    integer :: k,Max_iter
+
+    do k=0,max_iter
+       z=z-p(z,e)/diff(z,e)
+    end do
+    
+   
+    theta=atan(aimag(z)/real(z))
+    
+    
+
+  end function Newton
+
+
 
 
 

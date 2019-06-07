@@ -14,8 +14,9 @@ module IO
   logical :: j_for_carrying_d=.FALSE.
   logical :: b_for_carrying_d=.FALSE.
   logical :: lookfor_cont_d=.FALSE.
-
-
+  logical :: lookfor_warnings=.FALSE.
+  logical :: newt_for_carrying=.FALSE.
+!  public :: lookfor_warnings
 
 
 
@@ -120,7 +121,7 @@ contains
              elseif (val.eq."false".or.val.eq."False")then
                 lookfor_parallel=.FALSE.
              else
-                call warning(name,val)
+                call warning(name,val,lookfor_warnings)
              end if
           elseif(name.eq."continuation")then
              if (val.eq."true".or.val.eq."True")then
@@ -128,7 +129,7 @@ contains
              elseif (val.eq."false".or.val.eq."False")then
                 lookfor_cont=.FALSE.
              else
-                call warning(name,val)
+                call warning(name,val,lookfor_warnings)
              end if
           elseif(name.eq."write_data")then
              if(val.eq."true".or.val.eq."True")then
@@ -136,7 +137,7 @@ contains
              elseif (val.eq."false".or.val.eq."False")then
                 lookfor_data=.FALSE.
              else
-                call warning(name,val)
+                call warning(name,val,lookfor_warnings)
              end if
           elseif(name.eq."write_efficiency")then
              if(val.eq."true".or.val.eq."True")then
@@ -144,23 +145,28 @@ contains
              elseif (val.eq."false".or.val.eq."False")then
                 lookfor_eff=.FALSE.
              else
-                call warning(name,val)
+                call warning(name,val,lookfor_warnings)
              end if
           elseif(name.eq."calc_type".or.name.eq."Calc_type")then
              if(val.eq."buddahbrot".or.val.eq."Buddahbrot")then
                 b_for_carrying=.TRUE.
              elseif(val.eq."julia".or.val.eq."Julia")then
                 j_for_carrying=.TRUE.
+             elseif(val.eq."newton".or.val.eq."Newton")then
+                newt_for_carrying=.TRUE.
              elseif(val.eq."Mandelbrot".or.val.eq."mandelbrot")then
                 b_for_carrying=.FALSE.
                 j_for_carrying=.FALSE.
+                newt_for_carrying=.FALSE.
+
              else
-                call Warning(name,val)
+                call Warning(name,val,lookfor_warnings)
              end if
           elseif (name(1:1).eq."#".or.name(1:1).eq."!")then
              cycle
 
           else
+             lookfor_warnings=.TRUE.
              write(*,*) "Warning: Unknown parameter- ", name
 
           end if
@@ -174,10 +180,11 @@ contains
 
 
 
-  subroutine warning(name,val)
-    implicit none
-    character(*)::name,val
+  subroutine warning(name,val,lookfor_warnings)
 
+    character(*)::name,val
+    logical,intent(inout) :: lookfor_warnings
+    lookfor_warnings=.TRUE.
     write(*,*)"Warning: Unknown argument '",trim(val),"' for parameter: ",trim(name)
 49  format(1x,A,A,A,1x,A)
     write(*,*) "Reverting to default"
@@ -195,7 +202,7 @@ contains
 
 
     write(*,73) adjustl("CALC_TYPE"),":","Toggle the desired set"
-    write(*,78) "Allowed",":","Mandelbrot, Julia, Buddahbrot"
+    write(*,78) "Allowed",":","Mandelbrot, Julia, Buddahbrot, Newton"
     write(*,74) "Default",":","Mandelbrot"
     write(*,*)
 
@@ -286,6 +293,7 @@ contains
     write(file,*) "                      ***************************************"
     write(file,*) "                      *     Dryrun Complete: Finishing      *"
     write(file,*) "                      ***************************************"
+
     stop
   end subroutine print_dry
 

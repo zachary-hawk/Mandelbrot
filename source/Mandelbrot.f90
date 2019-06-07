@@ -35,7 +35,7 @@ program Mandelbrot
   character(20)::z_char="[0.0:0.0]",z_re_char,z_im_char
   character(len=3),dimension(12)::months
   integer::data_size
-  real :: e_default,tolerance,frac,memory_size=0,memory_buffer=0
+  real :: e_default,tolerance,frac,memory_size=0,memory_buffer=0,theta
   months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
 
@@ -77,6 +77,7 @@ program Mandelbrot
   call READ_PARAMETERS(N,Max_iter,e_default,budda_param,z_re,z_im,lower_x,lower_y, upper_x,&
        upper_y,lookfor_parallel,lookfor_data,lookfor_eff,j_for_carrying,b_for_carrying,param,&
        continuation)
+
 
   !  end if
 
@@ -328,7 +329,7 @@ program Mandelbrot
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! FILE WRITTING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   if (rank.eq.0)then
-     call File()
+     call File()!lookfor_warnings)
   end if
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -446,7 +447,7 @@ program Mandelbrot
      end if
 
 
-     !and the Mandelbrot and Julia 
+     !and the Mandelbrot and Julia and newt
 
   else
 
@@ -459,6 +460,12 @@ program Mandelbrot
 
            if (J_FOR_CARRYING)then
               k=julia(Max_iter,z,c,e_default)
+
+           elseif(newt_for_carrying)then
+
+              theta=Newton(max_iter,c,e_default)
+              
+
            else
               z=(0,0)
 
@@ -467,11 +474,20 @@ program Mandelbrot
 
 
            if (lookfor_PARALLEL) then
-              colour_ref =k -Max_iter-1+k + Max_iter*rank
-              Buffer_mpi(j)=colour_ref
+              if(newt_for_carrying)then
+                 Buffer_mpi(j)=theta+rank
+              else
+
+                 colour_ref =k -Max_iter-1+k + Max_iter*rank
+                 Buffer_mpi(j)=colour_ref
+              end if
            else 
-              colour_ref =k -Max_iter-1+k
-              Buffer_mpi(j)=colour_ref
+              if (newt_for_carrying)then
+                 Buffer_mpi(j)=theta
+              else
+                 colour_ref =k -Max_iter-1+k
+                 Buffer_mpi(j)=colour_ref
+              end if
            end if
 
         end do
@@ -606,7 +622,10 @@ program Mandelbrot
 
   end if
   close(1)
-  call COMMS_FINALISE()
+
+
+  CALL COMMS_FINALISE()
+
 
 contains 
   subroutine print_help()
@@ -648,8 +667,8 @@ contains
 
 
 
-  subroutine File()
-
+  subroutine File()!lookfor_warnings)
+    !    logical :: lookfor_warnings
     !write(*,*) compiler_version()
 
     !Initialise Files
@@ -685,7 +704,9 @@ contains
 
        write(1,*)
        write(1,2002) "Calculation Type:","Buddahbrot"
-
+    elseif (newt_for_carrying)then
+       write(1,*)
+       write(1,2003) "Calculation Type:","Newton"
     else
        write(1,*)
        write(1,2002) "Calculation Type:","Mandelbrot"
@@ -693,6 +714,8 @@ contains
     write(1,*)
 2001 format(1x,A,35x,A)
 2002 format(1x,A,30x,A)
+2003 format(1x,A,34x,A)
+
 
 91  format(1x,A,42x,i6)
 92  format(1x,A,43x,f5.2)
@@ -757,7 +780,11 @@ contains
     write(1,345) "Estimated Memory Usage:",memory_buffer,"MB"
 345 format(1x,a,25x,f9.2,1x,a)
     write(1,*)
-    if (lookfor_dry)then
+    if(lookfor_warnings)then
+       write(1,*) "** Warnings Present, Check param.mand"
+       write(1,*)
+    end if
+    if (lookfor_dry.and.rank.eq.0)then
        call print_dry(1)
     end if
     write(1,*) "Starting Calculation:"
@@ -765,4 +792,4 @@ contains
 
   end subroutine File
 
-end program
+end program Mandelbrot
