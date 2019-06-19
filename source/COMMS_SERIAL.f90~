@@ -33,13 +33,13 @@ contains
 
   subroutine COMMS_RANK(rank)
     integer,intent(inout) :: rank
-
+    print*, "rank success"
 
   end subroutine COMMS_RANK
 
   subroutine COMMS_SIZE(nprocs)
     integer,intent(inout) :: nprocs
-    nprocs=1
+
   end subroutine COMMS_SIZE
 
 
@@ -48,7 +48,7 @@ contains
     integer:: count,dest_rank,tag
     integer :: send_buff
     !    print*,send_buff
-    print*, "send_int success"
+
 
   end subroutine COMMS_SEND_INT
 

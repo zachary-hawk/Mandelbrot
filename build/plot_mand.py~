@@ -4,8 +4,14 @@ from scipy.io import FortranFile
 import matplotlib.pyplot as plt
 import sys
 
+def print_help():
 
 
+    print("Mandelbrot image generator, Author: Z.Hawkhead")
+    print()
+    print("Change image colourmap \nTakes matplotlib colormap string, or intger in range 0-79")
+    print()
+    
 cmaps = ['viridis', 'plasma', 'inferno', 'magma',
   
             'Greys', 'Purples', 'Blues', 'Greens', 'Oranges', 'Reds',
@@ -31,20 +37,24 @@ cmaps = ['viridis', 'plasma', 'inferno', 'magma',
 if len(sys.argv)>1:
     
     c=sys.argv[1]
-    #i=np.int(sys.argv[1])
+
+    if c=="-h":
+        print_help()
+        exit()
+
+
     if len(c)>2:
-        i=np.where(cmaps==c)
+        i=cmaps.index(c)
+        
+        color=cmaps[i]
     else:
         i=np.int(c)
-        #if i<len(cmaps)-1:
+
         color=cmaps[i]
-        
-    else:
-        color="cubehelix"
 else:
     color="cubehelix"
 
-print("Cmap used: ",color)
+print("Cmap used: ",color,"\nindex:",cmaps.index(color))
 
 f = FortranFile("data.mand", "r")
 
@@ -52,8 +62,30 @@ data = f.read_reals(np.float32)#.reshape((n,n))
 n=int(np.sqrt(len(data)))
 data=data.reshape((n,n))
 
+
+print(data)
 f.close()
 
 plt.imsave("img.png",data,origin = "centre",cmap = color)#,extent = (minx,maxx,miny,maxy))
 
 
+#from PIL import Image
+
+#img = Image.open('img.png')
+#img = img.convert("RGBA")
+#datas = img.getdata()
+
+#newData = []
+#for item in datas:
+#    if item[0] == 0 and item[1] == 0 and item[2] == 0:
+#        newData.append((255, 255, 255, 0))
+#    else:
+#        if item[0] > 150:
+#            newData.append((0, 0, 0, 255))
+#        else:
+#            newData.append(item)
+#            #print(item)3#3#
+
+
+#img.putdata(newData)
+#img.save("img_transparent.png", "PNG")

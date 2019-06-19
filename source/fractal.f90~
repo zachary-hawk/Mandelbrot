@@ -145,11 +145,7 @@ contains
     integer :: k,Max_iter
 
     do k=0,max_iter
-!       if (abs(p(z,e)/diff(z,e)).lt.real(1e-17))then
-!          exit
-!       end if
        z=z-p(z,e)/diff(z,e)
-
     end do
     
    

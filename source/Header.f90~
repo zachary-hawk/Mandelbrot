@@ -14,18 +14,13 @@ contains
     integer::file
     character(81)::parser_version
     character(100)::DATE,TIME,compiler,arch_string,version,comms,cpuinfo
-    integer :: maj_mpi,min_mpi,min_char
+    integer :: maj_mpi,min_mpi
     character(len=max_version_length) :: mpi_c_version
-    character(len=3) :: MPI_version_num
+
 
     if (comms_arch.eq."MPI")then
        call COMMS_LIBRARY_VERSION(mpi_c_version)
-       call COMMS_VERSION(min_mpi,maj_mpi)
-
-       write(mpi_version_num,97)min_mpi,maj_mpi
-97     format(i1,"."i1)
-       min_char=scan(mpi_c_version,".")
-       !print*, mpi_c_version,mpi_version_num
+       print*,mpi_c_version
     end if
 
 
@@ -77,7 +72,7 @@ contains
     write(file,*)
     write(file,*) "Communications architechture: ",trim(comms_arch)
     if (comms_arch.eq."MPI")then
-       write(file,*) "MPI Version: ",mpi_c_version(1:min_char+1)
+       write(file,*) "MPI Version: ",mpi_c_version(1:18)
     end if
     write(file,*)
   end subroutine header

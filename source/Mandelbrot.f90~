@@ -17,8 +17,7 @@ program Mandelbrot
   real,allocatable,dimension(:,:):: set,buddah_set,buddah_buff
   complex*16 :: c,z,c_buff=(0,0),julia_param ! the complex number to be used
   double precision :: lower_X=-2.0,upper_X=0.5,lower_Y=-1.25,upper_Y=1.25,dx,dy, init_time,init_buff,fini_time,fini_buff
-  double precision :: start, finish ,inp_st, inp_fn,int_time,par_start,par_end,par_time=0.0,tot_par_time,total_proc_times
-  double precision :: after_calc,after_calc_buff
+  double precision ::start, finish ,inp_st, inp_fn,int_time,par_start,par_end,par_time=0.0,tot_par_time,total_proc_times
   integer::  nprocs, rank, rem 
   integer::narg,cptArg,buddah_counter=0,buddah_buff_counter !#of arg & counter of arg
   character(len=20)::name !Arg name
@@ -88,7 +87,6 @@ program Mandelbrot
   ! Set up Commandline Parser
 
   !Check for arguments 
-
   narg=command_argument_count()
 
   !Loop over the arguments
@@ -235,6 +233,7 @@ program Mandelbrot
   !ERROR HANDLING
 
 
+
   if (upper_X-lower_X .lt. 0 .or.upper_Y-lower_Y .lt. 0) then 
      call errors(rank,"Extent definition ambiguous"  )
   else if (N.lt.0)then
@@ -247,9 +246,7 @@ program Mandelbrot
   end if
 
   !Ensure commensurate with cores 
-
   do while (mod(N,nprocs).gt.0)
-
      N=N+1
   end do
 
@@ -337,8 +334,6 @@ program Mandelbrot
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
-
-
   !Do the Calculations
 
   init_time=COMMS_WTIME()
@@ -389,11 +384,11 @@ program Mandelbrot
         z=cmplx(0,0)
 
         !print*,"first z",z
-        !call init_random_seed()
-        ! call random_number(z_re)
-        !   call random_number(z_im)
-        !     z_re=z_re*(upper_x-lower_x)+lower_x
-        !       z_im=z_im*(upper_y-lower_y)+lower_y
+        !    call init_random_seed()
+        !     call random_number(z_re)
+        !      call random_number(z_im)
+        !       z_re=z_re*(upper_x-lower_x)+lower_x
+        !        z_im=z_im*(upper_y-lower_y)+lower_y
 
 
         !c=cmplx(z_re,z_im)
@@ -469,7 +464,7 @@ program Mandelbrot
            elseif(newt_for_carrying)then
 
               theta=Newton(max_iter,c,e_default)
-
+              
 
            else
               z=(0,0)
@@ -543,8 +538,26 @@ program Mandelbrot
 
      end do
   end if
+  finish = COMMS_WTIME()
+  !par_start=MPI_WTIME()
+  call COMMS_REDUCE_DOUBLE(start,inp_st,1,"MPI_MIN")
+  CALL COMMS_REDUCE_DOUBLE(finish,inp_fn,1,"MPI_MAX")
+  CALL COMMS_REDUCE_DOUBLE(finish-start,total_proc_times,1,"MPI_SUM")
+  CALL COMMS_REDUCE_DOUBLE(init_time,init_buff,1,"MPI_MAX")
+  if (b_for_carrying)then
+     CALL COMMS_REDUCE_INT(buddah_counter,buddah_buff_counter,1,"MPI_SUM")
 
-  after_calc=COMMS_WTIME()
+  end if
+
+  !par_end=MPI_WTIME()
+  !par_time=par_time+par_end-par_start
+
+  !  print*,total_proc_times
+
+  CALL COMMS_REDUCE_DOUBLE(par_time,tot_par_time,1,"MPI_SUM")
+
+
+
 
   !plotting perimeter points
 
@@ -565,39 +578,13 @@ program Mandelbrot
   !close(12)
 
 
-
-  if (lookfor_data.and.rank.eq.0)then
-     !    print*, "about to write"                                                                                                                                                                       
-     write(2)set
-     !     print*, "written"                                                                                                                                                                             
-     close(2)
-  end if
-
-  finish = COMMS_WTIME()
-  call COMMS_REDUCE_DOUBLE(start,inp_st,1,"MPI_MIN")
-  CALL COMMS_REDUCE_DOUBLE(finish,inp_fn,1,"MPI_MAX")
-  CALL COMMS_REDUCE_DOUBLE(finish-start,total_proc_times,1,"MPI_SUM")
-  CALL COMMS_REDUCE_DOUBLE(init_time,init_buff,1,"MPI_MAX")
-  if (b_for_carrying)then
-     CALL COMMS_REDUCE_INT(buddah_counter,buddah_buff_counter,1,"MPI_SUM")
-  end if
-  CALL COMMS_REDUCE_DOUBLE(par_time,tot_par_time,1,"MPI_SUM")
-  CALL COMMS_REDUCE_DOUBLE(after_calc,after_calc_buff,1,"MPI_MAX")
-
   if (rank.eq.0)then
-
-
-
      !Finish Files and close
      write(1,*)"************************************************************************************"
-
      write(1,1002) init_buff-inp_st
-     write(1,1003) inp_fn-after_calc_buff
      Write(1,1001) inp_fn-inp_st
-
 1001 format(" Total Calculation Time:                       ",F11.5," s")   
 1002 format(" Initialisation Time:                          ",F11.5," s")
-1003 format(" Finalisation Time:                            ",F11.5," s")
      write(1,*)"************************************************************************************"  
      write(1,*)
      eff=100.-par_time*100./total_proc_times
@@ -611,6 +598,12 @@ program Mandelbrot
      if (b_for_carrying)then 
         write(1,304) "Buddahbrot Efficiency:",100.*real(buddah_buff_counter)/real(budda_param),"%"
 304     format(1x,A,29x,f6.2,1x,A)
+     end if
+     if (lookfor_data)then
+        !    print*, "about to write"
+        write(2)set
+        !     print*, "written"
+        close(2)
      end if
 
 

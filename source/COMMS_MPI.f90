@@ -34,7 +34,6 @@ contains
     integer ::length
     call MPI_GET_LIBRARY_VERSION(MPI_version,length,ierr)
 
-
   end subroutine COMMS_LIBRARY_VERSION
 
 
