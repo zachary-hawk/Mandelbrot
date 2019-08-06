@@ -24,7 +24,7 @@ program Mandelbrot
   character(len=20)::name !Arg name
   logical::lookfor_N=.FALSE.,lookfor_MAX_ITER=.FALSE.,lookfor_PARALLEL=.FALSE.,lookfor_lx=.FALSE.,lookfor_data=.TRUE.
   logical::lookfor_ux=.FALSE.,lookfor_ly=.FALSE.,lookfor_uy=.FALSE.,lookfor_eff=.FALSE.,lookfor_c=.FALSE.,lookfor_j=.FALSE.
-  logical::lookfor_m=.FALSE.,J_FOR_CARRYING=.FALSE.,lookfor_buddah=.FALSE.,B_FOR_CARRYING=.FALSE.,param,continuation=.FALSE.
+  logical::lookfor_m=.FALSE.,J_FOR_CARRYING=.FALSE.,lookfor_buddah=.FALSE.,param,continuation=.FALSE.
   logical::lookfor_cont,args_bool=.FALSE.,lookfor_dry
   integer:: d_t(8),budda_param
   character*10 :: b(3),clear_check
@@ -75,9 +75,13 @@ program Mandelbrot
 
 !!! Define the parameters from the param.mand
   ! if(rank.eq.0)then
+
+
   call READ_PARAMETERS(N,Max_iter,e_default,budda_param,z_re,z_im,lower_x,lower_y, upper_x,&
        upper_y,lookfor_parallel,lookfor_data,lookfor_eff,j_for_carrying,b_for_carrying,param,&
        continuation)
+
+
 
 
   !  end if
@@ -308,7 +312,7 @@ program Mandelbrot
 
 
   ! SET DEFAULTS FOR EACH CALCULATION
-  if (j_for_carrying)then
+  if (j_for_carrying.or.burn_for_carrying)then
      if (lower_x==lower_x_d)then
         lower_x=-2.0
      end if
@@ -451,7 +455,7 @@ program Mandelbrot
         deallocate(buddah_buff)
      end if
 
-
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
      !and the Mandelbrot and Julia and newt
 
   else
@@ -470,7 +474,9 @@ program Mandelbrot
 
               theta=Newton(max_iter,c,e_default)
 
-
+           elseif(burn_for_carrying)then
+              z=(0,0)
+              k=burning(Max_iter,z,c,e_default)
            else
               z=(0,0)
 
@@ -714,6 +720,8 @@ contains
     elseif (newt_for_carrying)then
        write(1,*)
        write(1,2003) "Calculation Type:","Newton"
+    elseif (burn_for_carrying)then
+       write(1,2004) "Calculation Type:","Burning Ship"
     else
        write(1,*)
        write(1,2002) "Calculation Type:","Mandelbrot"
@@ -722,6 +730,7 @@ contains
 2001 format(1x,A,35x,A)
 2002 format(1x,A,30x,A)
 2003 format(1x,A,34x,A)
+2004 format(1x,A,28x,A) 
 
 
 91  format(1x,A,42x,i6)

@@ -12,7 +12,8 @@ module IO
   logical :: lookfor_data_d=.TRUE.
   logical :: lookfor_eff_d=.FALSE.
   logical :: j_for_carrying_d=.FALSE.
-  logical :: b_for_carrying_d=.FALSE.
+  logical :: burn_for_carrying=.FALSE.
+  logical :: b_for_carrying=.FALSE.
   logical :: lookfor_cont_d=.FALSE.
   logical :: lookfor_warnings=.FALSE.
   logical :: newt_for_carrying=.FALSE.
@@ -20,6 +21,9 @@ module IO
 
 
 
+ 
+
+  
 contains
 
   subroutine READ_PARAMETERS(N,Max_iter,e_default,budda_param,z_re,z_im,lower_x,lower_y,&
@@ -45,28 +49,28 @@ contains
     !
     !------------------------------------------------
 
-    integer :: IOstatus=0,i,counter
-    logical :: file_exist
-    character(len=20) :: chara,name,val,z_re_char,z_im_char
-    character(len=1) :: junk
-    real,intent(out) :: z_re,z_im
-    complex :: julia_const
+    integer                      :: IOstatus=0,i,counter
+    logical                      :: file_exist
+    character(len=20)            :: chara,name,val,z_re_char,z_im_char
+    character(len=1)             :: junk
+    real,intent(out)             :: z_re,z_im
+    complex                      :: julia_const
 
-    integer,intent(out) :: N
-    integer,intent(out) :: Max_iter
-    real,intent(out) :: e_default
-    integer,intent(out) :: budda_param
+    integer,intent(out)          :: N
+    integer,intent(out)          :: Max_iter
+    real,intent(out)             :: e_default
+    integer,intent(out)          :: budda_param
     double precision,intent(out) :: lower_X
     double precision,intent(out) :: upper_X
     double precision,intent(out) :: lower_Y
     double precision,intent(out) :: upper_Y
-    logical,intent(out) :: lookfor_parallel
-    logical,intent(out) :: lookfor_data
-    logical,intent(out) :: lookfor_eff
-    logical,intent(out) :: j_for_carrying
-    logical,intent(out) :: b_for_carrying
-    logical,intent(out) :: param
-    logical,intent(out) :: lookfor_cont
+    logical,intent(out)          :: lookfor_parallel
+    logical,intent(out)          :: lookfor_data
+    logical,intent(out)          :: lookfor_eff
+    logical,intent(out)          :: j_for_carrying
+    logical,intent(out)          :: b_for_carrying
+    logical,intent(out)          :: param
+    logical,intent(out)          :: lookfor_cont
     N=N_d
     Max_iter=Max_iter_d
     e_default= e_default_d
@@ -80,7 +84,9 @@ contains
     lookfor_data=lookfor_data_d
     lookfor_eff=lookfor_eff_d
     j_for_carrying=j_for_carrying_d
-    b_for_carrying=b_for_carrying_d
+
+    
+    
 
     inquire(file="param.mand", EXIST=file_exist)
     if (file_exist)then 
@@ -112,9 +118,9 @@ contains
           elseif (name.eq."x_up")then
              read(val,'(f15.10)')upper_x
           elseif (name.eq."y_low")then
-             read(val,'(f15.10)')lower_y
+             read(val,'(f15.10)')lower_Y
           elseif (name.eq."y_up")then
-             read(val,'(f15.10)')upper_y
+             read(val,'(f15.10)')upper_Y
           elseif(name.eq."plot_parallel")then
              if (val.eq."true".or.val.eq."True")then
                 lookfor_parallel=.TRUE.
@@ -154,6 +160,10 @@ contains
                 j_for_carrying=.TRUE.
              elseif(val.eq."newton".or.val.eq."Newton")then
                 newt_for_carrying=.TRUE.
+             elseif(val.eq."burning_ship")then
+                burn_for_carrying=.TRUE.
+
+
              elseif(val.eq."Mandelbrot".or.val.eq."mandelbrot")then
                 b_for_carrying=.FALSE.
                 j_for_carrying=.FALSE.
@@ -202,7 +212,7 @@ contains
 
 
     write(*,73) adjustl("CALC_TYPE"),":","Toggle the desired set"
-    write(*,78) "Allowed",":","Mandelbrot, Julia, Buddahbrot, Newton"
+    write(*,78) "Allowed",":","Mandelbrot, Julia, Buddahbrot, Newton, Burning_ship"
     write(*,74) "Default",":","Mandelbrot"
     write(*,*)
 

@@ -53,6 +53,31 @@ contains
   end function julia
 
 
+function burning(Max_iter,z,c,e) result(k)
+    implicit none
+    integer,intent(in)::Max_iter 
+    complex*16::z,c
+    integer :: k
+    real :: e
+
+    if (e.EQ.int(e))then
+       do k=0,Max_iter
+          z = (abs(real(z))+cmplx(0,1)*abs(aimag(z)))**int(e)+c
+          if (abs(z).gt.2) then
+             exit
+          end if
+       end do
+    else
+       do k=0,Max_iter
+          z = (abs(real(z))+cmplx(0,1)*abs(aimag(z)))**e+c
+          if (abs(z).gt.2) then
+             exit
+          end if
+       end do
+    end if
+
+  end function burning
+  
 
 
   function random_pos()result(z)
