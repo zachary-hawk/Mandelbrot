@@ -30,14 +30,12 @@ BUILD_DIR ?= ./../build
 ifeq ($(COMMS_ARCH),mpi)
 
 
-mandelbrot.mpi: Mandelbrot.o Header.o fractal.o IO.o COMMS_MPI.o
-	$(MPI_FC) $(FCFLAGS) -o mandelbrot.mpi Mandelbrot.o COMMS_MPI.o Header.o fractal.o IO.o  -cpp
+mandelbrot.mpi: Mandelbrot.o  fractal.o IO.o COMMS_MPI.o
+	$(MPI_FC) $(FCFLAGS) -o mandelbrot.mpi Mandelbrot.o COMMS_MPI.o fractal.o IO.o  -cpp
 
 COMMS_MPI.o: COMMS_MPI.f90
 	$(MPI_FC) $(FCFLAGS) -c COMMS_MPI.f90 -cpp
 
-Header.o: Header.f90 COMMS_MPI.o
-	$(MPI_FC) $(FCFLAGS) -c Header.f90 COMMS_MPI.o -cpp
 
 fractal.o: fractal.f90
 	$(MPI_FC) $(FCFLAGS) -c fractal.f90 -cpp
@@ -46,8 +44,7 @@ IO.o: IO.f90
 	$(MPI_FC) $(FCFLAGS) -c IO.f90 -cpp
 
 
-
-Mandelbrot.o: Mandelbrot.f90 Header.o fractal.o IO.o COMMS_MPI.o
+Mandelbrot.o: Mandelbrot.f90 fractal.o IO.o COMMS_MPI.o
 	$(MPI_FC) $(FCFLAGS) -c Mandelbrot.f90 -cpp
 
 
@@ -57,11 +54,8 @@ endif
 
 ifeq ($(COMMS_ARCH),serial)
 
-mandelbrot.serial: Mandelbrot.o Header.o fractal.o IO.o COMMS_SERIAL.o
-	$(SERIAL_FC) $(FCFLAGS) -o mandelbrot.serial Mandelbrot.o COMMS_SERIAL.o Header.o fractal.o IO.o  -cpp
-
-Header.o: Header.f90 COMMS_SERIAL.o
-	$(SERIAL_FC) $(FCFLAGS) -c Header.f90 COMMS_SERIAL.o -cpp
+mandelbrot.serial: Mandelbrot.o  fractal.o IO.o COMMS_SERIAL.o
+	$(SERIAL_FC) $(FCFLAGS) -o mandelbrot.serial Mandelbrot.o COMMS_SERIAL.o  fractal.o IO.o  -cpp
 
 fractal.o: fractal.f90
 	$(SERIAL_FC) $(FCFLAGS) -c fractal.f90 -cpp
@@ -73,7 +67,7 @@ COMMS_SERIAL.o: COMMS_SERIAL.f90
 	$(SERIAL_FC) $(FCFLAGS) -c COMMS_SERIAL.f90 -cpp
 
 
-Mandelbrot.o: Mandelbrot.f90 Header.o fractal.o IO.o COMMS_SERIAL.o
+Mandelbrot.o: Mandelbrot.f90  fractal.o IO.o COMMS_SERIAL.o
 	$(SERIAL_FC) $(FCFLAGS) -c Mandelbrot.f90 -cpp
 
 
