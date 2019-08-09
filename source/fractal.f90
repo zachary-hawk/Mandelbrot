@@ -45,14 +45,14 @@ contains
     if (e.EQ.int(e))then
        do k=0,Max_iter
           z = z**int(e)+c
-          if (abs(z).gt.2) then
+          if (abs(z).gt.4) then
              exit
           end if
        end do
     else 
        do k=0,Max_iter
           z = z**e+c
-          if (abs(z).gt.2) then
+          if (abs(z).gt.4) then
              exit
           end if
        end do
@@ -60,7 +60,7 @@ contains
   end function julia
 
 
-function burning(Max_iter,z,c,e) result(k)
+  function burning(Max_iter,z,c,e) result(k)
     implicit none
     integer,intent(in)::Max_iter 
     complex*16::z,c
@@ -69,15 +69,16 @@ function burning(Max_iter,z,c,e) result(k)
 
     if (e.EQ.int(e))then
        do k=0,Max_iter
+          !          z=          (real(z)+cmplx(0,1)*(aimag(z)))*(real(z)-cmplx(0,1)*(aimag(z)))+c
           z = (abs(real(z))+cmplx(0,1)*abs(aimag(z)))**int(e)+c
-          if (abs(z).gt.2) then
+          if (abs(z).gt.4) then
              exit
           end if
        end do
     else
        do k=0,Max_iter
           z = (abs(real(z))+cmplx(0,1)*abs(aimag(z)))**e+c
-          if (abs(z).gt.2) then
+          if (abs(z).gt.4) then
              exit
           end if
        end do

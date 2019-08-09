@@ -22,7 +22,12 @@ contains
   end subroutine COMMS_BARRIER
 
 
-
+  subroutine COMMS_ABORT(error_code)
+    integer :: error_code
+    call MPI_ABORT(MPI_COMM_WORLD,error_code,ierr)
+    print*,"abort"
+  end subroutine COMMS_ABORT
+  
 
 
 
@@ -338,11 +343,5 @@ contains
     time = MPI_WTIME()
 
   end function COMMS_WTIME
-
-
-
-
-
-
 
 end module COMMS

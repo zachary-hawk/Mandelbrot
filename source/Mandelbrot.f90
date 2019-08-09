@@ -26,9 +26,8 @@ program Mandelbrot
   logical                         :: args_bool=.FALSE.,dryrun=.false.,lookfor_c=.false.,on_root
   character*10                    :: clear_check
   real                            :: eff,z_im=0.,z_re=0.
-  character(20)                   :: z_char="[0.0:0.0]",z_re_char,z_im_char
   integer                         :: data_size
-  real                            :: tolerance,frac,memory_size=0,memory_buffer=0,theta
+  real                            :: tolerance,frac,memory_size=0,memory_buffer=0,theta,disk_stor=0
 
 
 
@@ -123,6 +122,7 @@ program Mandelbrot
   ! Allocating arrays
   if (rank.eq.0) then
      allocate(set(1:N,1:N))
+     if (lookfor_data) disk_stor=sizeof(set)*1e-6
      allocate(rank_0_buff(1:N))
      if (b_for_carrying) then
         allocate(buddah_buff(1:N,1:N))
@@ -172,12 +172,20 @@ program Mandelbrot
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! FILE WRITTING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  if (on_root) call File(dryrun,nprocs,memory_buffer)
+  if (on_root) call File(nprocs,memory_buffer,disk_stor)
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
 
+  !Check for dryrun
+  if(dryrun) call print_dry(on_root)
+
+  if (on_root)then
+     write(stdout,*)"--------------------------------------------------------------------------- <-- TIME"
+     write(stdout,*)"                           Starting Calculation                             <-- TIME"
+     write(stdout,*)"--------------------------------------------------------------------------- <-- TIME"
+  endif
 
   !Do the Calculations
 
@@ -265,6 +273,7 @@ program Mandelbrot
            z=cmplx(z_re,z_im)
 
            if (J_FOR_CARRYING)then
+              z=julia_const
               k=julia(Max_iter,z,c,e_default)
 
            elseif(newt_for_carrying)then
@@ -272,7 +281,7 @@ program Mandelbrot
               theta=Newton(max_iter,c,e_default)
 
            elseif(burn_for_carrying)then
-              z=(0,0)
+              z=julia_const
               k=burning(Max_iter,z,c,e_default)
            else
               z=(0,0)

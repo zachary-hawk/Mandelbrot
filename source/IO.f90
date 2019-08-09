@@ -109,14 +109,13 @@ contains
     write(file,*)
   end subroutine header
 
-
-  subroutine File(dryrun,nprocs,memory_buffer)
+  subroutine File(nprocs,memory_buffer,disk_stor)
     character(len=3),dimension(12)  :: months
     integer                         :: d_t(8)    
     character*10                    :: b(3)
-    logical,intent(in)              :: dryrun
     integer,intent(in)              :: nprocs
-    real,intent(in)                 :: memory_buffer
+    real,intent(in)                 :: memory_buffer,disk_stor
+    
     call date_and_time(b(1), b(2), b(3), d_t)
     months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
@@ -173,7 +172,7 @@ contains
     write(stdout,2002) "No. Iterations",max_iter
 
     write(stdout,2003)"Exponent:",e_default
-    if (j_for_carrying)  write(stdout,2005) "Value of c",julia_const
+    if (j_for_carrying.or.burn_for_carrying)  write(stdout,2005) "Value of c",julia_const
 
     write(stdout,2003)"Lower X",lower_x
     write(stdout,2003)"Upper X",upper_x
@@ -208,43 +207,31 @@ contains
     write(stdout,*)"------------------------------------------------------------------------------------"
     write(stdout,*)
     write(stdout,2003) "Estimated memory usage (MB)",memory_buffer
-
+    write(stdout,2003) "Estimated disk storage (MB)",disk_stor
+    
     write(stdout,*)
     if(lookfor_warnings)then
        write(stdout,*) "** Warnings Present, Check param.mand"
        write(stdout,*)
     end if
-    if (dryrun)then
-       call print_dry()
-    end if
-    write(stdout,*)"--------------------------------------------------------------------------- <-- TIME"
-    write(stdout,*)"                           Starting Calculation                             <-- TIME"
-    write(stdout,*)"--------------------------------------------------------------------------- <-- TIME"
+
 
 
   end subroutine File
 
 
-
-
-
-
-
-
-
-
   subroutine READ_PARAMETERS()
 
-    integer                      :: IOstatus=0,i,counter
-    character(len=20)            :: chara,name,val,z_re_char,z_im_char
-    character(len=1)             :: junk
+    integer                      :: IOstatus=0,i,counter,j
+    character(len=30)            :: chara,name,val,z_re_char,z_im_char,junk
+
     logical                      :: change_ux=.FALSE.
     logical                      :: change_lx=.FALSE.
     logical                      :: change_uy=.FALSE.
     logical                      :: change_ly=.FALSE.
     logical                      :: change_exp=.FALSE.
     logical                      :: change_iter=.FALSE.
-
+    logical                      :: change_julia=.FALSE.
 
 
 
@@ -254,16 +241,36 @@ contains
 
        do while (IOstatus .eq. 0) 
 
-          read(24,*,IOSTAT=IOstatus)name,junk,val!chara
+          read(24,'(A)',IOSTAT=IOstatus)junk
+
+          do j=1,len_trim(junk)
+
+             if (junk(j:j).eq.':' .or. junk(j:j).eq."=")then
+                name=junk(1:j-1)
+                val=junk(j+1:len_trim(junk))
+
+                exit
+             elseif (j.eq.len_trim(junk))then
+                !                print*, name, j, "no colon found"
+                call Errors("User I/O Error")                
+             endif
+          enddo
+
+
 
           name=string_tolower(name)
           val=string_tolower(val)
+
+          name=adjustl(name)
+          val=adjustl(val)
+
           if (adjustl(name).eq."grid_size")then
              read(val,'(i6)')N
           elseif (name.eq."max_iter")then
              read(val,'(i12)')max_iter
              change_iter=.TRUE.
           elseif (name.eq."exponent")then
+             call int_to_real(val)
              read(val,'(f5.2)')e_default
              change_exp=.true.
           elseif (name.eq."buddah_const".or.name.eq."Buddah_const")then
@@ -271,16 +278,21 @@ contains
              b_for_carrying=.TRUE.
           elseif (name.eq."julia_const")then
              read(val,*)julia_const
+             change_julia=.TRUE.
           elseif (name.eq."x_low")then
+             call int_to_real(val)
              read(val,'(f15.10)')lower_x
              change_lx=.true.
           elseif (name.eq."x_up")then
+             call int_to_real(val)
              read(val,'(f15.10)')upper_x
              change_ux=.true.
           elseif (name.eq."y_low")then
+             call int_to_real(val)
              read(val,'(f15.10)')lower_Y
              change_ly=.true.        
           elseif (name.eq."y_up")then
+             call int_to_real(val)
              read(val,'(f15.10)')upper_Y
              change_uy=.true.         
           elseif(name.eq."plot_parallel")then
@@ -358,6 +370,7 @@ contains
        if (.not.change_ux)upper_x=2.0
        if (.not.change_ly)lower_y=-2.
        if (.not.change_uy)upper_y=0.75
+       if(.not.change_julia)julia_const=(0.,0.)
     elseif (b_for_carrying)then
        upper_x=0.75
        lower_X=-2.0
@@ -424,9 +437,9 @@ contains
     write(*,75) "Default",":",budda_param
     write(*,*)
 
-    write(*,73) adjustl("JULIA_CONST"),":","Specify Julia set constant, quotes required"
+    write(*,73) adjustl("JULIA_CONST"),":","Specify Julia set constant"
     write(*,78) "Allowed",":","any complex"
-    write(*,74) "Default",":","'(0.0,0.0)'"
+    write(*,74) "Default",":","(0.0,0.0)"
     write(*,*)
 
     write(*,73) adjustl("X_UP"),":","Sepcify maximum x co-ordinate"
@@ -486,12 +499,14 @@ contains
   end function string_tolower
 
 
-  subroutine print_dry()
-
-    write(stdout,*) "                      ***************************************"
-    write(stdout,*) "                      *     Dryrun Complete: Finishing      *"
-    write(stdout,*) "                      ***************************************"
-
+  subroutine print_dry(on_root)
+    logical :: on_root
+    if (on_root)then
+       write(stdout,*) "                      ***************************************"
+       write(stdout,*) "                      *     Dryrun Complete: Finishing      *"
+       write(stdout,*) "                      ***************************************"
+    endif
+    call COMMS_FINALISE()
     stop
   end subroutine print_dry
 
@@ -511,7 +526,6 @@ contains
     character(*)::message
 
        open(20,file="err.mand",status="unknown",access="append")
-       write(*,*) "Error"
        write(20,*) "Error: ",trim(message)
        close(20)
        stop
@@ -519,4 +533,16 @@ contains
   end subroutine errors
 
 
+  subroutine int_to_real(int_real)
+    character(*),intent(inout) :: int_real
+    integer                    :: j
+    logical                    :: decimal=.false.
+
+    do j=1,len_trim(int_real)
+       if (int_real(j:j).eq.".")decimal=.true.
+    end do
+
+    if (.not.decimal)int_real=trim(int_real)//"."
+
+  end subroutine int_to_real
 end module IO

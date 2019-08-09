@@ -18,21 +18,24 @@ contains
   subroutine COMMS_LIBRARY_VERSION(MPI_version)
     character(len=max_version_length),intent(inout) :: MPI_version
     integer ::length
-    
-    
-
   end subroutine COMMS_LIBRARY_VERSION
+
+  subroutine COMMS_ABORT(message)
+    character(*) :: message
+
+  end subroutine COMMS_ABORT
+
 
 
 
   subroutine COMMS_INIT()
     integer :: ierr
-    
+
   end subroutine COMMS_INIT
 
   subroutine COMMS_FINALISE()
     integer :: ierr
-    
+
   end subroutine COMMS_FINALISE
 
 
