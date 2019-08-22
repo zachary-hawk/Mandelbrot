@@ -33,10 +33,8 @@ subsystem:
 .phony: install
 
 clean:
-	rm $(SOURCE)/*.o $(objects) $(SOURCE)/mandelbrot.mpi
+	rm -f $(SOURCE)/*.o $(objects) $(SOURCE)/mandelbrot.* $(BUILD_DIR)/mandelbrot.* $(SOURCE)/*.mod
 
-cleanall:
-	rm -f $(SOURCE)/*.o $(objects) $(SOURCE)/mandelbrot.* $(BUILD_DIR)/mandelbrot.* *.mod
 
 
 endif 
@@ -55,10 +53,7 @@ subsystem:
 
 
 clean:
-	rm $(SOURCE)/*.o $(objects) $(SOURCE)/mandelbrot.serial
-
-cleanall:
-	rm -f $(SOURCE)/*.o $(objects) $(SOURCE)/mandelbrot.* $(BUILD_DIR)/mandelbrot.* *.mod
+	rm -f $(SOURCE)/*.o $(objects) $(SOURCE)/mandelbrot.* $(BUILD_DIR)/mandelbrot.* $(SOURCE)/*.mod
 
 
 endif

@@ -1,3 +1,4 @@
+!---- File documented by Fortran Documenter, Z.Hawkhead
 !=============================================================================!
 !                                     IO                                      !                                                                                                            
 !=============================================================================!                                                                                                                            
@@ -10,44 +11,63 @@ module IO
   use comms
   implicit none
 !!!!!! DEFINE THE DEFAULTS !!!!!!!!!
-  integer        :: N=1000
-  integer        :: Max_iter=50
-  real           :: e_default=2.
-  integer        :: budda_param=10000
-  integer        :: stdout
-  real(real32)   :: lower_X=-2.0
-  real(real32)   :: upper_X=0.5
-  real(real32)   :: lower_Y=-1.25
-  real(real32)   :: upper_Y=1.25
-  logical        :: lookfor_parallel=.FALSE.
-  logical        :: lookfor_data=.TRUE.
-  logical        :: lookfor_eff=.FALSE.
-  logical        :: j_for_carrying=.FALSE.
-  logical        :: burn_for_carrying=.FALSE.
-  logical        :: b_for_carrying=.FALSE.
-  logical        :: lookfor_cont=.FALSE.
-  logical        :: lookfor_warnings=.FALSE.
-  logical        :: newt_for_carrying=.FALSE.
-  logical        :: continuation=.FALSE.
-  logical        :: file_exist
-  complex        :: julia_const=(0.285,0.01)
-  character(81)  :: parser_version="Mandelbrot v.3.0, Z.Hawkhead" 
-  character(100) :: info="Parallel code for calculating the Mandelbrot Set"
-  character(100) :: DATE,TIME,compiler,arch_string,version,cpuinfo
+  integer          :: N=1000
+  integer          :: Max_iter=50
+  real             :: e_default=2.
+  real             :: bail_out=1.e5
+  integer          :: buddah_param=10000
+  integer          :: stdout
+  real(real32)     :: lower_X=-2.0
+  real(real32)     :: upper_X=0.5
+  real(real32)     :: lower_Y=-1.25
+  real(real32)     :: upper_Y=1.25
+  logical          :: lookfor_parallel=.FALSE.
+  logical          :: lookfor_data=.TRUE.
+  logical          :: lookfor_eff=.FALSE.
+  logical          :: j_for_carrying=.FALSE.
+  logical          :: burn_for_carrying=.FALSE.
+  logical          :: b_for_carrying=.FALSE.
+  logical          :: lookfor_cont=.FALSE.
+  logical          :: lookfor_warnings=.FALSE.
+  logical          :: newt_for_carrying=.FALSE.
+  logical          :: continuation=.FALSE.
+  logical          :: file_exist
+  logical          :: triangle=.false.
+  logical          :: ave_an=.false.
+  logical          :: mandelbrot=.true.
+  logical          :: debug=.false.
+  complex          :: julia_const=(0.285,0.01)
+  character(81)    :: parser_version="Mandelbrot v.3.0, Z.Hawkhead" 
+  character(100)   :: info="Parallel code for calculating the Mandelbrot Set"
+  character(100)   :: DATE,TIME,compiler,arch_string,version,cpuinfo
+  integer,parameter:: complex_kind=real32
 
 
+  !  public :: triangle,ave_ang
 
 
 
 contains
 
+
+
   subroutine header()
+    !==============================================================================!
+    !                                 H E A D E R                                  !
+    !==============================================================================!
+    ! Subroutine used to write the header of the main Mandelbrot output file       !
+    ! "out.mand".                                                                  !
+    !------------------------------------------------------------------------------!
+    ! Arguments:                                                                   !
+    !           None                                                               !
+    !------------------------------------------------------------------------------!
+    ! Author:   Z. Hawkhead  16/08/2019                                            !
+    !==============================================================================!
     implicit none
     integer::file
     integer :: maj_mpi,min_mpi,min_char
     character(len=max_version_length) :: mpi_c_version
     character(len=3) :: MPI_version_num
-
     if (comms_arch.eq."MPI")then
        call COMMS_LIBRARY_VERSION(mpi_c_version)
        call COMMS_VERSION(min_mpi,maj_mpi)
@@ -58,7 +78,7 @@ contains
        !print*, mpi_c_version,mpi_version_num
     end if
 
-
+    print*,"STDOUT int: ",stdout
 
 
 
@@ -88,34 +108,47 @@ contains
 
     if (len(arch).eq.0)  print*,"Could not determine system"
 
-    write(file,*) "+==================================================================================+"
-    write(file,*) "| MM    MM   AAA   NN   NN DDDDD   EEEEEEE LL      BBBBB   RRRRRR   OOOOO  TTTTTTT |"
-    write(file,*) "| MMM  MMM  AAAAA  NNN  NN DD  DD  EE      LL      BB   B  RR   RR OO   OO   TTT   |"
-    write(file,*) "| MM MM MM AA   AA NN N NN DD   DD EEEEE   LL      BBBBBB  RRRRRR  OO   OO   TTT   |"
-    write(file,*) "| MM    MM AAAAAAA NN  NNN DD   DD EE      LL      BB   BB RR  RR  OO   OO   TTT   |"
-    write(file,*) "| MM    MM AA   AA NN   NN DDDDDD  EEEEEEE LLLLLLL BBBBBB  RR   RR  OOOO0    TTT   |"
-    write(file,*) "|                                                                                  |"
-    write(file,*) "| ",parser_version,"|"
-    write(file,*) "+==================================================================================+"
-    write(file,*)
-    write(file,*) "Compiled with ",compiler," ",Trim(version), " on ", __DATE__, " at ",__TIME__
-    write(file,*) "Compiled for CPU: ",trim(cpuinfo)
-    write(file,*) "Compiled for system: ",trim(arch_string)
-    write(file,*)
-    write(file,*) "Communications architechture: ",trim(comms_arch)
+    write(stdout,*) "+==================================================================================+"
+    write(stdout,*) "| MM    MM   AAA   NN   NN DDDDD   EEEEEEE LL      BBBBB   RRRRRR   OOOOO  TTTTTTT |"
+    write(stdout,*) "| MMM  MMM  AAAAA  NNN  NN DD  DD  EE      LL      BB   B  RR   RR OO   OO   TTT   |"
+    write(stdout,*) "| MM MM MM AA   AA NN N NN DD   DD EEEEE   LL      BBBBBB  RRRRRR  OO   OO   TTT   |"
+    write(stdout,*) "| MM    MM AAAAAAA NN  NNN DD   DD EE      LL      BB   BB RR  RR  OO   OO   TTT   |"
+    write(stdout,*) "| MM    MM AA   AA NN   NN DDDDDD  EEEEEEE LLLLLLL BBBBBB  RR   RR  OOOO0    TTT   |"
+    write(stdout,*) "|                                                                                  |"
+    write(stdout,*) "| ",parser_version,"|"
+    write(stdout,*) "+==================================================================================+"
+    write(stdout,*)
+    write(stdout,*) "Compiled with ",compiler," ",Trim(version), " on ", __DATE__, " at ",__TIME__
+    write(stdout,*) "Compiled for CPU: ",trim(cpuinfo)
+    write(stdout,*) "Compiled for system: ",trim(arch_string)
+    write(stdout,"(1x,A,i3)") "Complex precision: ",8*complex_kind
+    write(stdout,*) "Communications architechture: ",trim(comms_arch)
     if (comms_arch.eq."MPI")then
-       write(file,*) "MPI Version: ",mpi_c_version(1:min_char+1)
+       write(stdout,*) "MPI Version: ",mpi_c_version(1:min_char+1)
     end if
-    write(file,*)
+    write(stdout,*)
   end subroutine header
 
   subroutine File(nprocs,memory_buffer,disk_stor)
+    !==============================================================================!
+    !                                   F I L E                                    !
+    !==============================================================================!
+    ! Subroutine used to write the main body of the Mandelbrot output file,        !
+    ! "out.mand".                                                                  !
+    !------------------------------------------------------------------------------!
+    ! Arguments:                                                                   !
+    !           nprocs,            intent :: in                                    !
+    !           memory_buffer,     intent :: in                                    !
+    !           disk_stor,         intent :: in                                    !
+    !------------------------------------------------------------------------------!
+    ! Author:   Z. Hawkhead  16/08/2019                                            !
+    !==============================================================================!
     character(len=3),dimension(12)  :: months
     integer                         :: d_t(8)    
     character*10                    :: b(3)
     integer,intent(in)              :: nprocs
     real,intent(in)                 :: memory_buffer,disk_stor
-    
+
     call date_and_time(b(1), b(2), b(3), d_t)
     months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
@@ -145,70 +178,98 @@ contains
 2001 format(1x,A37,5x,':',A15)   !Format for Characters
 2002 format(1x,A37,5x,':',i15)   !Format for integer parameters
 2003 format(1x,A37,5x,':',f15.2) !Format for real parameters
+2004 format(1x,A37,5x,':',ES15.2)!Format for scientific paramteters
 2005 format(1x,A37,5x,':',F8.3,SP,F6.3,"i")
+2006 format(23x,A42)
+
+    write(stdout,2006)"----------- Fractal Parameters -----------"
+    write(stdout,*)
+
 
     if (j_for_carrying)then
-       write(stdout,*)""
        write(stdout,2001) "Calculation Type","Julia"
     else if (b_for_carrying)then
-
-       write(stdout,*)""
        write(stdout,2001) "Calculation Type","Buddahbrot"
     elseif (newt_for_carrying)then
-       write(stdout,*)""
        write(stdout,2001) "Calculation Type","Newton"
     elseif (burn_for_carrying)then
        write(stdout,2001) "Calculation Type","Burning Ship"
     else
-       write(stdout,*)
        write(stdout,2001) "Calculation Type","Mandelbrot"
     endif
 
-    if (b_for_carrying) write(stdout,2002) "No. Initial positions:",budda_param
+    if (b_for_carrying) write(stdout,2002) "No. Initial positions:",buddah_param
+
+    write(stdout,2003)"Exponent",e_default
+    if (j_for_carrying.or.burn_for_carrying)  write(stdout,2005) "Complex seed",julia_const
+    if (.not.newt_for_carrying) write(stdout,2004) "Bail Out",bail_out
+    write(stdout,2002) "Maximum Iterations",max_iter
+    write(stdout,*)
+    write(stdout,2006)"------------ Image Parameters ------------"
+    write(stdout,*)	
 
 
 
-    write(stdout,2002) "No. Grid points",N
-    write(stdout,2002) "No. Iterations",max_iter
-
-    write(stdout,2003)"Exponent:",e_default
-    if (j_for_carrying.or.burn_for_carrying)  write(stdout,2005) "Value of c",julia_const
-
+    write(stdout,2002)"No. Grid points",N
     write(stdout,2003)"Lower X",lower_x
     write(stdout,2003)"Upper X",upper_x
     write(stdout,2003)"Lower Y",lower_y
     write(stdout,2003)"Upper Y",upper_y
 
-    if (nprocs.gt.1)then
-       write(stdout,2001)"Parallelised","True"
-       write(stdout,2002)"No. Processes", nprocs
-       if (lookfor_PARALLEL .and. lookfor_data .and.b_for_carrying) then
-          write(stdout,2001) "Colouring by Processor","True"
+    if (j_for_carrying.or.burn_for_carrying.or.mandelbrot)then
+
+       write(stdout,*)
+       write(stdout,2006)"------------ Colouring Scheme ------------"
+       write(stdout,*)
+
+       if (triangle)then
+          write(stdout,2001) "Colouring Method","Triangle"
+       elseif (ave_an)then 
+          write(stdout,2001) "Colouring Method","Average Angle"
        else
-          write(stdout,2001) "Colouring by Processor","False"
+          write(stdout,2001) "Colouring Method","Normal"
        end if
-    else
-       write(stdout,2001)"Parallelised","False"
+       if (nprocs.gt.1)then
+          if (lookfor_PARALLEL .and. lookfor_data .and.b_for_carrying)then
+             write(stdout,2001) "MPI Colouring","True"
+          else
+             write(stdout,2001) "MPI Colouring","False"
+          end if
+       end if
     end if
 
+    if (comms_arch.eq."MPI")then
+       write(stdout,*)
+       write(stdout,2006)"------------ Parallelisation -------------"
+       write(stdout,*)
 
+       if (nprocs.gt.1)then
+          write(stdout,2001)"Parallelised","True"
+          write(stdout,2002)"No. Processes", nprocs
+       else
+          write(stdout,2001)"Parallelised","False"
+       end if
+    end if
+    write(stdout,*)
+    write(stdout,2006)"----------------- Output -----------------"
+    write(stdout,*)
 
     if (lookfor_eff)then
-       write(stdout,2001) "Writing efficiency data","True"
+       write(stdout,2001) "Efficiency","True"
     else
-       write(stdout,2001) "Writing efficiency data","False"
+       write(stdout,2001) "Efficiency","False"
     end if
     if (lookfor_data)then
-       write(stdout,2001) "Writing data","True"
+       write(stdout,2001) "Write Data","True"
     else
-       write(stdout,2001) "Writing data","False"
+       write(stdout,2001) "Write Data","False"
     end if
     write(stdout,*)
     write(stdout,*)"------------------------------------------------------------------------------------"
     write(stdout,*)
     write(stdout,2003) "Estimated memory usage (MB)",memory_buffer
     write(stdout,2003) "Estimated disk storage (MB)",disk_stor
-    
+
     write(stdout,*)
     if(lookfor_warnings)then
        write(stdout,*) "** Warnings Present, Check param.mand"
@@ -221,6 +282,17 @@ contains
 
 
   subroutine READ_PARAMETERS()
+    !==============================================================================!
+    !                        R E A D _ P A R A M E T E R S                         !
+    !==============================================================================!
+    ! Subroutine for reading free format parameters file for Mandelbrot,           !
+    ! contained in "param.mand".                                                   !
+    !------------------------------------------------------------------------------!
+    ! Arguments:                                                                   !
+    !           None                                                               !
+    !------------------------------------------------------------------------------!
+    ! Author:   Z. Hawkhead  16/08/2019                                            !
+    !==============================================================================!
 
     integer                      :: IOstatus=0,i,counter,j
     character(len=30)            :: chara,name,val,z_re_char,z_im_char,junk
@@ -274,8 +346,7 @@ contains
              read(val,'(f5.2)')e_default
              change_exp=.true.
           elseif (name.eq."buddah_const".or.name.eq."Buddah_const")then
-             read(val,'(i12)')budda_param
-             b_for_carrying=.TRUE.
+             read(val,'(i12)')buddah_param
           elseif (name.eq."julia_const")then
              read(val,*)julia_const
              change_julia=.TRUE.
@@ -294,7 +365,38 @@ contains
           elseif (name.eq."y_up")then
              call int_to_real(val)
              read(val,'(f15.10)')upper_Y
-             change_uy=.true.         
+             change_uy=.true.       
+          elseif (name.eq."debug")then
+             if(val.eq."true")then
+                debug=.true.
+             elseif(val.eq."false")then
+                debug=.false.
+             end if
+          elseif (name.eq."colouring_method")then
+             if (val.eq."triangle")then 
+                triangle=.true.
+             elseif (val.eq."angle")then
+                ave_an=.true.
+             elseif(val.eq."normal")then 
+                ave_an=.false.
+             else
+                call warning(name,val,lookfor_warnings)
+
+             end if
+          elseif (name.eq."bail_out")then
+             do i=1,len_trim(val)
+                if (val(1:1).eq."e")then 
+                   read(val,'(E11.4)')bail_out
+                   exit
+                elseif(i.eq.len_trim(val))then
+                   call int_to_real(val)
+                   read(val,'(f15.10)')bail_out
+
+                else
+                   cycle
+                end if
+             end do
+
           elseif(name.eq."plot_parallel")then
              if (val.eq."true".or.val.eq."True")then
                 lookfor_parallel=.TRUE.
@@ -330,19 +432,21 @@ contains
           elseif(name.eq."calc_type".or.name.eq."Calc_type")then
              if(val.eq."buddahbrot".or.val.eq."Buddahbrot")then
                 b_for_carrying=.TRUE.
+                mandelbrot=.false.
              elseif(val.eq."julia".or.val.eq."Julia")then
                 j_for_carrying=.TRUE.
+                mandelbrot=.false.
              elseif(val.eq."newton".or.val.eq."Newton")then
                 newt_for_carrying=.TRUE.
+                mandelbrot=.false.
              elseif(val.eq."burning_ship")then
                 burn_for_carrying=.TRUE.
-
-
+                mandelbrot=.false.
              elseif(val.eq."Mandelbrot".or.val.eq."mandelbrot")then
                 b_for_carrying=.FALSE.
                 j_for_carrying=.FALSE.
                 newt_for_carrying=.FALSE.
-
+                mandelbrot=.true.
              else
                 call Warning(name,val,lookfor_warnings)
              end if
@@ -356,6 +460,7 @@ contains
           end if
        end do
     end if
+
 
 
     !Set the Defaults
@@ -392,6 +497,19 @@ contains
 
 
   subroutine warning(name,val,lookfor_warnings)
+    !==============================================================================!
+    !                                W A R N I N G                                 !
+    !==============================================================================!
+    ! Subroutine for writing warnings to the main output file "out.mand" when      !
+    ! unknown parameters are present in the parameters file.                       !
+    !------------------------------------------------------------------------------!
+    ! Arguments:                                                                   !
+    !           name,              intent :: in                                    !
+    !           val,               intent :: in                                    !
+    !           lookfor_warnings,  intent :: inout                                 !
+    !------------------------------------------------------------------------------!
+    ! Author:   Z. Hawkhead  16/08/2019                                            !
+    !==============================================================================!
 
     character(*)::name,val
     logical,intent(inout) :: lookfor_warnings
@@ -403,6 +521,17 @@ contains
   end subroutine warning
 
   subroutine params()
+    !==============================================================================!
+    !                                 P A R A M S                                  !
+    !==============================================================================!
+    ! Subroutine defining the list of parameters, accessible using "--list" flag   !
+    ! on the commandline.                                                          !
+    !------------------------------------------------------------------------------!
+    ! Arguments:                                                                   !
+    !           None                                                               !
+    !------------------------------------------------------------------------------!
+    ! Author:   Z. Hawkhead  16/08/2019                                            !
+    !==============================================================================!
     write(*,*) "PARAMETERS:"
     write(*,*)
 73  format(1x,A16,5x,A,5x,A) !Paramter
@@ -434,7 +563,7 @@ contains
 
     write(*,73) adjustl("BUDDAH_CONST"),":","Specify No. initial posotions in Buddahbrot calculation"
     write(*,78) "Allowed",":","any int > 0"
-    write(*,75) "Default",":",budda_param
+    write(*,75) "Default",":",buddah_param
     write(*,*)
 
     write(*,73) adjustl("JULIA_CONST"),":","Specify Julia set constant"
@@ -475,11 +604,36 @@ contains
     write(*,73) adjustl("PLOT_PARALLEL"),":","Colour Mandelbrot/Julia calculation by processor"
     write(*,78) "Allowed",":","TRUE,FALSE"
     write(*,74) "Default",":","FALSE"
+    write(*,*)
+
+    write(*,73) adjustl("BAIL_OUT"),":","Set bail out value for fractal iteration"
+    write(*,78) "Allowed",":","any real"
+    write(*,74) "Default",":","1.0E5"
+    write(*,*)
+
+    write(*,73) adjustl("COLOURING_METHOD"),":","Change colouring method for fractal sets"
+    write(*,78) "Allowed",":","NORMAL,TRIANGLE,ANGLE"
+    write(*,74) "Default",":","NORMAL"
+
 
   end subroutine params
 
 
   function string_tolower( string ) result (new) 
+    !==============================================================================!
+    !                         S T R I N G _ T O L O W E R                          !
+    !==============================================================================!
+    ! Functional subroutine used to lower the case of inputted strings to          !
+    ! prevent ambiguities in reading parameters.                                   !
+    !------------------------------------------------------------------------------!
+    ! Arguments:                                                                   !
+    !           None                                                               !
+    !------------------------------------------------------------------------------!
+    ! Result:                                                                      !
+    !           strin                                                              !
+    !------------------------------------------------------------------------------!
+    ! Author:   Z. Hawkhead  16/08/2019                                            !
+    !==============================================================================!
     character(len=*)           :: string 
 
     character(len=len(string)) :: new 
@@ -500,11 +654,22 @@ contains
 
 
   subroutine print_dry(on_root)
+    !==============================================================================!
+    !                              P R I N T _ D R Y                               !
+    !==============================================================================!
+    ! Subroutine used to terminiate a calculation after initialisation. Used to    !
+    ! check input parameters, accessible using "--dryrun" on the commandline.      !
+    !------------------------------------------------------------------------------!
+    ! Arguments:                                                                   !
+    !           on_root,           intent :: in                                    !
+    !------------------------------------------------------------------------------!
+    ! Author:   Z. Hawkhead  16/08/2019                                            !
+    !==============================================================================!
     logical :: on_root
     if (on_root)then
-       write(stdout,*) "                      ***************************************"
-       write(stdout,*) "                      *     Dryrun Complete: Finishing      *"
-       write(stdout,*) "                      ***************************************"
+       write(stdout,*) "                        ***************************************"
+       write(stdout,*) "                        *     Dryrun Complete: Finishing      *"
+       write(stdout,*) "                        ***************************************"
     endif
     call COMMS_FINALISE()
     stop
@@ -513,6 +678,17 @@ contains
 
 
   subroutine print_help()
+    !==============================================================================!
+    !                             P R I N T _ H E L P                              !
+    !==============================================================================!
+    ! Subroutine to print the help information for Mandelbrot, accessible using    !
+    ! "--help" on the commandline.                                                 !
+    !------------------------------------------------------------------------------!
+    ! Arguments:                                                                   !
+    !           None                                                               !
+    !------------------------------------------------------------------------------!
+    ! Author:   Z. Hawkhead  16/08/2019                                            !
+    !==============================================================================!
     write(*,*) trim(parser_version)
     write(*,*) trim(info)
     write(*,*) '   -v, --version     Print version information and exit'
@@ -522,27 +698,50 @@ contains
   end subroutine print_help
 
   subroutine errors(message)
+    !==============================================================================!
+    !                                 E R R O R S                                  !
+    !==============================================================================!
+    ! Subroutine used to call errors and terminate the program when fatal errors   !
+    ! are detected in the input parameters.                                        !
+    !------------------------------------------------------------------------------!
+    ! Arguments:                                                                   !
+    !           message,           intent :: in                                    !
+    !------------------------------------------------------------------------------!
+    ! Author:   Z. Hawkhead  16/08/2019                                            !
+    !==============================================================================!
     implicit none
     character(*)::message
 
-       open(20,file="err.mand",status="unknown",access="append")
-       write(20,*) "Error: ",trim(message)
-       close(20)
-       stop
+    open(20,file="err.mand",status="unknown",access="append")
+    write(20,*) "Error: ",trim(message)
+    close(20)
+    stop
 
   end subroutine errors
 
 
   subroutine int_to_real(int_real)
+    !==============================================================================!
+    !                            I N T _ T O _ R E A L                             !
+    !==============================================================================!
+    ! Functional subroutine for converting characters to integers when read        !
+    ! natively as reals in the parameters file.                                    !
+    !------------------------------------------------------------------------------!
+    ! Arguments:                                                                   !
+    !           int_real,          intent :: inout                                 !
+    !------------------------------------------------------------------------------!
+    ! Author:   Z. Hawkhead  16/08/2019                                            !
+    !==============================================================================!
     character(*),intent(inout) :: int_real
     integer                    :: j
     logical                    :: decimal=.false.
 
-    do j=1,len_trim(int_real)
+    do j=0,len_trim(int_real)
        if (int_real(j:j).eq.".")decimal=.true.
     end do
 
     if (.not.decimal)int_real=trim(int_real)//"."
-
+    decimal=.false.
   end subroutine int_to_real
 end module IO
+

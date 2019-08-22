@@ -25,7 +25,13 @@ contains
 
   end subroutine COMMS_ABORT
 
+  subroutine COMMS_VERSION(maj_mpi,min_mpi)
+    integer, intent(inout):: maj_mpi,min_mpi
 
+    call MPI_GET_VERSION(maj_MPI,min_MPI,ierr)
+
+
+  end subroutine COMMS_VERSION
 
 
   subroutine COMMS_INIT()

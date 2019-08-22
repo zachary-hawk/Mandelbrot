@@ -1,5 +1,5 @@
 !=============================================================================!
-!                              MANDELBROT                                     !
+!                           M A N D E L B R O T                               !
 !=============================================================================!
 !          The main code for Mandelbrot and fractal generation                !
 !-----------------------------------------------------------------------------!
@@ -12,11 +12,11 @@ program Mandelbrot
   use ISO_FORTRAN_ENV
   implicit none
 
-  integer                         :: i,j,k,l=0,m, colour_ref,colour_ref_buff,i_buff,j_buff, rank_buff,comp_count,z_counter=21
-  integer                         :: k_buff,m_buff,buddah_iter
+  integer                         :: i,j,l=0,m,i_buff,j_buff, rank_buff,comp_count,z_counter=21
+  integer                         :: buddah_iter
   real(real32),allocatable        :: Buffer_mpi(:),rank_0_buff(:)
   real(real32),allocatable        :: set(:,:),buddah_set(:,:),buddah_buff(:,:)
-  complex*16                      :: c,z,c_buff=(0,0) ! the complex number to be used
+  complex(complex_kind)           :: c,z,c_buff=(0,0) ! the complex number to be used
   double precision                :: dx,dy, init_time,init_buff,fini_time,fini_buff
   double precision                :: start, finish ,inp_st, inp_fn,int_time,par_start,par_end,par_time=0.0,tot_par_time,total_proc_times
   double precision                :: after_calc,after_calc_buff
@@ -27,7 +27,7 @@ program Mandelbrot
   character*10                    :: clear_check
   real                            :: eff,z_im=0.,z_re=0.
   integer                         :: data_size
-  real                            :: tolerance,frac,memory_size=0,memory_buffer=0,theta,disk_stor=0
+  real                            :: tolerance,frac,memory_size=0,memory_buffer=0,theta,disk_stor=0,k,colour_ref,colour_ref_buff
 
 
 
@@ -198,19 +198,15 @@ program Mandelbrot
 
   if (b_for_carrying)then
 
-     !if (rank.eq.0) then
-
      buddah_set=0
-     !end if
-     !call MPI_BCAST(set,N**2,MPI_INT,0,MPI_COMM_WORLD,ierr)
-     tolerance=1/(real(budda_param)/real(nprocs))
+     tolerance=1/(real(buddah_param)/real(nprocs))
 
 
-     do buddah_iter=1,int(real(budda_param)/(real(nprocs)))
+     do buddah_iter=1,int(real(buddah_param)/(real(nprocs)))
 
         int_time=COMMS_WTIME()
 
-        frac=real(buddah_iter)/real(budda_param/nprocs)
+        frac=real(buddah_iter)/real(buddah_param/nprocs)
         do comp_count=10,90,10
            if (frac.gt.real(comp_count)/100..or.&
                 frac.eq.real(comp_count)/100.)then
@@ -232,7 +228,8 @@ program Mandelbrot
         z=cmplx(0,0)
         do j=1,Max_iter
            z=z**2+c
-           if (abs(z).gt.4) exit
+           if(debug)print*, abs(z)
+           if (abs(z).gt.bail_out) exit
 
            k=int(N*(real(z)-lower_x)/(upper_x-lower_x))
            m=int(N*(aimag(z)-lower_y)/(upper_y-lower_y))
@@ -242,16 +239,18 @@ program Mandelbrot
                  if (buddah_set(m,k).eq.0)then
                  end if
                  buddah_set(m,k)=buddah_set(m,k)+10!/(10+buddah_set(m,k))
+                 !               end if
               end if
            end if
         end do
      end do
 
-     if (rank.gt.0) CALL COMMS_SEND_REAL_ARRAY2D(buddah_set,N,N,0,rank)
-
+     if (rank.gt.0)then
+        CALL COMMS_SEND_REAL_ARRAY2D(buddah_set,N,N,0,rank)
+     end if
      if (rank.eq.0)then
         set=set+buddah_set
-        do j=1,nprocs-1
+        do j=1,nprocs-1           
            CALL COMMS_RECV_REAL_ARRAY2D(buddah_buff,N,N,j,j)
            set=set+buddah_buff
         end do
@@ -287,6 +286,7 @@ program Mandelbrot
               z=(0,0)
 
               k=mand(Max_iter,z,c,e_default)
+
            end if
 
 
@@ -302,7 +302,7 @@ program Mandelbrot
               if (newt_for_carrying)then
                  Buffer_mpi(j)=theta
               else
-                 colour_ref =k -Max_iter-1+k
+                 colour_ref =k! -Max_iter-1+k
                  Buffer_mpi(j)=colour_ref
               end if
            end if
@@ -379,6 +379,7 @@ program Mandelbrot
 
 
   if (lookfor_data.and.on_root)then
+     if(debug)write(stdout,*)set
      write(2)set
      close(2)
   end if
@@ -411,7 +412,7 @@ program Mandelbrot
      write(stdout,*)
 
      if (b_for_carrying)then 
-        write(stdout,304) "Buddahbrot Efficiency:",100.*real(buddah_buff_counter)/real(budda_param),"%"
+        write(stdout,304) "Buddahbrot Efficiency:",100.*real(buddah_buff_counter)/real(buddah_param),"%"
 304     format(1x,A,12x,f6.2,1x,A)
      end if
 
