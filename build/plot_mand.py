@@ -4,6 +4,7 @@ from scipy.io import FortranFile
 import matplotlib.pyplot as plt
 import sys
 
+
 def print_help():
 
 
@@ -66,26 +67,11 @@ data=data.reshape((n,n))
 #print(data)
 f.close()
 
+
+
+#print(data)
+
+
 plt.imsave("img.png",data,origin = "centre",cmap = color)#,extent = (minx,maxx,miny,maxy))
 
 
-#from PIL import Image
-
-#img = Image.open('img.png')
-#img = img.convert("RGBA")
-#datas = img.getdata()
-
-#newData = []
-#for item in datas:
-#    if item[0] == 0 and item[1] == 0 and item[2] == 0:
-#        newData.append((255, 255, 255, 0))
-#    else:
-#        if item[0] > 150:
-#            newData.append((0, 0, 0, 255))
-#        else:
-#            newData.append(item)
-#            #print(item)3#3#
-
-
-#img.putdata(newData)
-#img.save("img_transparent.png", "PNG")
