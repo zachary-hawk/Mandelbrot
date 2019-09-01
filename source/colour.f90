@@ -2,6 +2,7 @@
 module colours
   use IO
   use iso_fortran_env
+  use trace
   implicit none
 
 
@@ -30,7 +31,7 @@ contains
     integer,intent(in)              :: int
     real,intent(inout)              :: z_cum
     real(kind=real128)              :: max,min
-
+!    call trace_entry("TRIANGLE_INEQ")
 
 
     max=abs(abs(z_old**e_default)+abs(c))
@@ -43,7 +44,7 @@ contains
        z_cum=(z_cum+(abs(z)-min)/(max-min))
 
     end if
-
+!    call trace_exit("TRIANGLE_INEQ")
   end subroutine triangle_ineq
 
 
@@ -67,12 +68,14 @@ contains
     implicit none
     complex(complex_kind),intent(in)     :: z
     real,intent(inout)                   :: theta
+!    call trace_entry("AVE_ANGLE")
     if (abs(real(z)).gt.0)then
 
        theta=theta+atan(aimag(z)/real(z))
     else
        theta=theta
     end if
+!    call trace_exit("AVE_ANGLE")
   end subroutine ave_angle
 
 
@@ -84,9 +87,10 @@ contains
     complex(complex_kind),intent(in) :: z
     integer,intent(in)               :: k
     real,intent(inout)               :: colour
-
+!    call trace_entry("SMOOTH_ITER")
     colour=k-((log(abs(z))/log(bail_out))/log(e_default))
-!    if (colour.gt.100)colour=100
+    !    if (colour.gt.100)colour=100
+!    call trace_exit("SMOOTH_ITER")
   end subroutine smooth_iter
 
 

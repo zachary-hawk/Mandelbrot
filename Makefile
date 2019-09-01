@@ -13,7 +13,7 @@ COMMS_ARCH:=mpi
 
 MPI_FC:=mpif90
 
-SERIAL_FC:=ifort
+SERIAL_FC:=gfortran
 
 
 ########################################

@@ -9,6 +9,7 @@ program Mandelbrot
   use fractal
   use io
   use comms
+  use trace
   use ISO_FORTRAN_ENV
   implicit none
 
@@ -18,7 +19,8 @@ program Mandelbrot
   real(real32),allocatable        :: set(:,:),buddah_set(:,:),buddah_buff(:,:)
   complex(complex_kind)           :: c,z,c_buff=(0,0) ! the complex number to be used
   double precision                :: dx,dy, init_time,init_buff,fini_time,fini_buff
-  double precision                :: start, finish ,inp_st, inp_fn,int_time,par_start,par_end,par_time=0.0,tot_par_time,total_proc_times
+  double precision                :: start, finish ,inp_st, inp_fn,int_time,par_start,par_end
+  double precision                :: par_time=0.0,tot_par_time,total_proc_times
   double precision                :: after_calc,after_calc_buff
   integer                         :: nprocs, rank, rem 
   integer                         :: narg,cptArg,buddah_counter=0,buddah_buff_counter !#of arg & counter of arg
@@ -27,9 +29,10 @@ program Mandelbrot
   character*10                    :: clear_check
   real                            :: eff,z_im=0.,z_re=0.
   integer                         :: data_size
-  real                            :: tolerance,frac,memory_size=0,memory_buffer=0,theta,disk_stor=0,k,colour_ref,colour_ref_buff
+  real                            :: tolerance,frac,memory_size=0,memory_buffer=0,theta
+  real                            :: disk_stor=0,k,colour_ref,colour_ref_buff,comms_time_buff
 
-
+  call trace_init()
 
 
 
@@ -51,6 +54,12 @@ program Mandelbrot
 !!! Define the parameters from the param.mand
 
   call READ_PARAMETERS()
+  !Ensure commensurate with cores
+  if (.not.b_for_carrying)then 
+     do while (mod(N,nprocs).gt.0)
+        N=N+1
+     end do
+  end if
 
   ! Set up Commandline Parser
 
@@ -170,6 +179,7 @@ program Mandelbrot
 
 
 
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! FILE WRITTING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   if (on_root) call File(nprocs,memory_buffer,disk_stor)
@@ -191,6 +201,8 @@ program Mandelbrot
 
   init_time=COMMS_WTIME()
 
+
+  call trace_entry("MAIN_CALC")
   dx = (upper_X-lower_X)/N
   dy = (upper_Y-lower_Y)/N
 
@@ -228,7 +240,7 @@ program Mandelbrot
         z=cmplx(0,0)
         do j=1,Max_iter
            z=z**2+c
-           if(debug)print*, abs(z)
+!           if(debug)print*, abs(z)
            if (abs(z).gt.bail_out) exit
 
            k=int(N*(real(z)-lower_x)/(upper_x-lower_x))
@@ -355,7 +367,7 @@ program Mandelbrot
 
      end do
   end if
-
+  call trace_exit("MAIN_CALC")
   after_calc=COMMS_WTIME()
 
   !plotting perimeter points
@@ -379,7 +391,7 @@ program Mandelbrot
 
 
   if (lookfor_data.and.on_root)then
-     if(debug)write(stdout,*)set
+     !if(debug)write(stdout,*)set
      write(2)set
      close(2)
   end if
@@ -394,6 +406,14 @@ program Mandelbrot
   end if
   CALL COMMS_REDUCE_DOUBLE(par_time,tot_par_time,1,"MPI_SUM")
   CALL COMMS_REDUCE_DOUBLE(after_calc,after_calc_buff,1,"MPI_MAX")
+
+  !FINALISE THE TRACE
+  call trace_finalise(rank,debug)
+
+
+  CALL COMMS_REDUCE_REAL(comms_time,comms_time_buff,1,"MPI_SUM")
+  comms_time=comms_time_buff/nprocs
+
 
   if (on_root)then
 
@@ -410,7 +430,7 @@ program Mandelbrot
 1001 format(1x,A37,5x,':',F13.5," s",18x,"<-- TIME")   
      write(stdout,*)"--------------------------------------------------------------------------- <-- TIME"
      write(stdout,*)
-
+     if (nprocs.gt.1) write(stdout,304) "Parallel Efficiency:", 100*(1-comms_time/inp_fn-inp_st),"%"
      if (b_for_carrying)then 
         write(stdout,304) "Buddahbrot Efficiency:",100.*real(buddah_buff_counter)/real(buddah_param),"%"
 304     format(1x,A,12x,f6.2,1x,A)
@@ -435,5 +455,6 @@ program Mandelbrot
 
 
   CALL COMMS_FINALISE()
+
 
 end program Mandelbrot

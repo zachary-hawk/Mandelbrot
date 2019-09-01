@@ -10,6 +10,7 @@ module fractal
   use colours
   use io
   use iso_fortran_env
+  use trace
   implicit none
 
 
@@ -37,11 +38,11 @@ contains
     complex(complex_kind)::z,c,z_old=(0,0)
     integer :: k
     real :: e,z_cum=0,k_real
-
+!    call trace_entry("MAND")
     if (e.EQ.int(e))then 
        do k=1,Max_iter
           z_old=z
-          z = z**int(e)+c-exp(z)
+          z = z**int(e)+c
           if (triangle)then
              call triangle_ineq(z,c,z_old,z_cum,k)
           elseif (ave_an)then
@@ -78,6 +79,7 @@ contains
     else
        call smooth_iter(k,z,k_real)
     end if
+!    call trace_exit("MAND")
   end function mand
 
 
@@ -102,7 +104,7 @@ contains
     complex(complex_kind)::z,c,z_old=(0,0)
     integer :: k
     real :: e,z_cum=0,k_real
-
+!    call trace_entry("JULIA")
     if (e.EQ.int(e))then
        do k=0,Max_iter
           z_old=z
@@ -143,7 +145,7 @@ contains
        call smooth_iter(k,z,k_real)
 
     end if
-
+!    call trace_exit("JULIA")
   end function julia
 
 
@@ -170,7 +172,7 @@ contains
     complex(complex_kind)::z,c,z_old=(0,0)
     integer :: k
     real :: e,z_cum=0,k_real
-
+!    call trace_entry("BURNING")
     if (e.EQ.int(e))then
        do k=0,Max_iter
 
@@ -211,6 +213,7 @@ contains
     else
        call smooth_iter(k,z,k_real)
     end if
+!    call trace_exit("BURINING")
   end function burning
 
 
@@ -234,7 +237,8 @@ contains
     integer::i,j
     real::z_re,z_im,theta,floater
     character(len=100)::path_string,thing
-
+!    call trace_entry("RANDOM_POS")
+    
 #ifdef direc
 #define thing direc
 #endif
@@ -268,6 +272,7 @@ contains
     z=cmplx(z_re,z_im)
 
     close(35)
+!    call trace_exit("RANDOM_POS")
   end function random_pos
 
 
@@ -371,7 +376,7 @@ contains
     complex(complex_kind) :: z
     real :: theta,e
     integer :: k,Max_iter
-
+!    call trace_entry("NEWTON")
     do k=0,max_iter
        !       if (abs(p(z,e)/diff(z,e)).lt.real(1e-17))then
        !          exit
@@ -384,7 +389,7 @@ contains
     theta=atan(aimag(z)/real(z))
 
 
-
+!    call trace_exit("NEWTON")
   end function Newton
 
 

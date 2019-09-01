@@ -9,6 +9,7 @@
 module IO
   use iso_fortran_env
   use comms
+  use trace
   implicit none
 !!!!!! DEFINE THE DEFAULTS !!!!!!!!!
   integer          :: N=1000
@@ -34,7 +35,7 @@ module IO
   logical          :: file_exist
   logical          :: triangle=.false.
   logical          :: ave_an=.false.
-  logical          :: mandelbrot=.true.
+  logical          :: do_mandelbrot=.true.
   logical          :: debug=.false.
   complex          :: julia_const=(0.285,0.01)
   character(81)    :: parser_version="Mandelbrot v.3.0, Z.Hawkhead" 
@@ -68,6 +69,7 @@ contains
     integer :: maj_mpi,min_mpi,min_char
     character(len=max_version_length) :: mpi_c_version
     character(len=3) :: MPI_version_num
+    call trace_entry("HEADER")
     if (comms_arch.eq."MPI")then
        call COMMS_LIBRARY_VERSION(mpi_c_version)
        call COMMS_VERSION(min_mpi,maj_mpi)
@@ -78,7 +80,7 @@ contains
        !print*, mpi_c_version,mpi_version_num
     end if
 
-    print*,"STDOUT int: ",stdout
+
 
 
 
@@ -127,6 +129,7 @@ contains
        write(stdout,*) "MPI Version: ",mpi_c_version(1:min_char+1)
     end if
     write(stdout,*)
+    call trace_exit("HEADER")
   end subroutine header
 
   subroutine File(nprocs,memory_buffer,disk_stor)
@@ -148,7 +151,7 @@ contains
     character*10                    :: b(3)
     integer,intent(in)              :: nprocs
     real,intent(in)                 :: memory_buffer,disk_stor
-
+    call trace_entry("FILE")
     call date_and_time(b(1), b(2), b(3), d_t)
     months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
@@ -216,7 +219,7 @@ contains
     write(stdout,2003)"Lower Y",lower_y
     write(stdout,2003)"Upper Y",upper_y
 
-    if (j_for_carrying.or.burn_for_carrying.or.mandelbrot)then
+    if (j_for_carrying.or.burn_for_carrying.or.do_mandelbrot)then
 
        write(stdout,*)
        write(stdout,2006)"------------ Colouring Scheme ------------"
@@ -277,7 +280,7 @@ contains
     end if
 
 
-
+    call trace_exit("FILE")
   end subroutine File
 
 
@@ -305,7 +308,7 @@ contains
     logical                      :: change_iter=.FALSE.
     logical                      :: change_julia=.FALSE.
 
-
+    call trace_entry("READ_PARAMETERS")
 
     inquire(file="param.mand", EXIST=file_exist)
     if (file_exist)then 
@@ -432,21 +435,21 @@ contains
           elseif(name.eq."calc_type".or.name.eq."Calc_type")then
              if(val.eq."buddahbrot".or.val.eq."Buddahbrot")then
                 b_for_carrying=.TRUE.
-                mandelbrot=.false.
+                do_mandelbrot=.false.
              elseif(val.eq."julia".or.val.eq."Julia")then
                 j_for_carrying=.TRUE.
-                mandelbrot=.false.
+                do_mandelbrot=.false.
              elseif(val.eq."newton".or.val.eq."Newton")then
                 newt_for_carrying=.TRUE.
-                mandelbrot=.false.
+                do_mandelbrot=.false.
              elseif(val.eq."burning_ship")then
                 burn_for_carrying=.TRUE.
-                mandelbrot=.false.
+                do_mandelbrot=.false.
              elseif(val.eq."Mandelbrot".or.val.eq."mandelbrot")then
                 b_for_carrying=.FALSE.
                 j_for_carrying=.FALSE.
                 newt_for_carrying=.FALSE.
-                mandelbrot=.true.
+                do_mandelbrot=.true.
              else
                 call Warning(name,val,lookfor_warnings)
              end if
@@ -489,6 +492,7 @@ contains
        if (.not.change_uy)upper_y=2.0
        if (.not.change_exp)e_default=3.0
     end if
+    call trace_exit("READ_PARAMETERS")
   end subroutine READ_PARAMETERS
 
 
@@ -513,11 +517,12 @@ contains
 
     character(*)::name,val
     logical,intent(inout) :: lookfor_warnings
+    call trace_entry("WARNING")
     lookfor_warnings=.TRUE.
     write(*,*)"Warning: Unknown argument '",trim(val),"' for parameter: ",trim(name)
 49  format(1x,A,A,A,1x,A)
     write(*,*) "Reverting to default"
-
+    call trace_exit("WARNING")
   end subroutine warning
 
   subroutine params()
@@ -532,6 +537,7 @@ contains
     !------------------------------------------------------------------------------!
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
+    
     write(*,*) "PARAMETERS:"
     write(*,*)
 73  format(1x,A16,5x,A,5x,A) !Paramter
@@ -641,6 +647,7 @@ contains
     integer                    :: i 
     integer                    :: k 
     integer::length
+    call trace_entry("STRING_TOLOWER")
     length = len(string) 
     new    = string 
     do i = 1,len(string) 
@@ -650,6 +657,7 @@ contains
           new(i:i) = achar(k) 
        endif
     enddo
+    call trace_exit("STRING_TOLOWER")
   end function string_tolower
 
 
@@ -712,6 +720,7 @@ contains
     implicit none
     character(*)::message
 
+
     open(20,file="err.mand",status="unknown",access="append")
     write(20,*) "Error: ",trim(message)
     close(20)
@@ -735,13 +744,14 @@ contains
     character(*),intent(inout) :: int_real
     integer                    :: j
     logical                    :: decimal=.false.
-
+    call trace_entry("INT_TO_REAL")
     do j=0,len_trim(int_real)
        if (int_real(j:j).eq.".")decimal=.true.
     end do
 
     if (.not.decimal)int_real=trim(int_real)//"."
     decimal=.false.
+    call trace_exit("INT_TO_REAL")
   end subroutine int_to_real
 end module IO
 

@@ -8,6 +8,7 @@
 !=============================================================================! 
 module COMMS
   !use mpi
+  use trace
   implicit none
   include 'mpif.h'
   integer :: ierr
@@ -29,6 +30,8 @@ contains
     !------------------------------------------------------------------------------!
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
+    call trace_entry("COMMS_BARRIER")
+    call trace_exit("COMMS_BARRIER")
     call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
   end subroutine COMMS_BARRIER
@@ -47,8 +50,9 @@ contains
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
     integer :: error_code
+    call trace_entry("COMMS_ABORT")
     call MPI_ABORT(MPI_COMM_WORLD,error_code,ierr)
-    print*,"abort"
+    call trace_exit("COMMS_ABORT")
   end subroutine COMMS_ABORT
 
 
@@ -68,9 +72,9 @@ contains
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
     integer, intent(inout):: maj_mpi,min_mpi
-
+    call trace_entry("COMMS_VERSION")
     call MPI_GET_VERSION(maj_MPI,min_MPI,ierr)
-
+    call trace_exit("COMMS_VERSION")
 
   end subroutine COMMS_VERSION
 
@@ -89,8 +93,10 @@ contains
     !==============================================================================!
     character(len=max_version_length),intent(inout) :: MPI_version
     integer ::length
-    call MPI_GET_LIBRARY_VERSION(MPI_version,length,ierr)
 
+    CALL trace_entry("COMMS_LIBRARY_VERSION")
+    call MPI_GET_LIBRARY_VERSION(MPI_version,length,ierr)
+    call trace_exit("COMMS_LIBRARY_VERSION")
   end subroutine COMMS_LIBRARY_VERSION
 
 
@@ -108,8 +114,9 @@ contains
     !==============================================================================!
     character*(MPI_MAX_PROCESSOR_NAME) ::proc_name
     integer :: proc_name_len
+    call trace_entry("COMMS_PROC_NAME")
     call MPI_GET_PROCESSOR_NAME(proc_name,proc_name_len,ierr)
-    print*,proc_name
+    call trace_EXIT("COMMS_PROC_NAME")
 
   end subroutine COMMS_PROC_NAME
 
@@ -127,7 +134,9 @@ contains
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
     integer :: ierr
+    call trace_entry("COMMS_INIT")
     call MPI_INIT(ierr)
+    call trace_exit("COMMS_INIT")
 
   end subroutine COMMS_INIT
 
@@ -145,7 +154,9 @@ contains
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
     integer :: ierr
+    call trace_entry("COMMS_FINALISE")
     call MPI_FINALIZE(ierr)
+    call trace_exit("COMMS_FINALISE")
   end subroutine COMMS_FINALISE
 
 
@@ -181,9 +192,9 @@ contains
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
     integer,intent(inout) :: nprocs
-
+    call trace_entry("COMMS_SIZE")
     call MPI_COMM_SIZE(MPI_COMM_WORLD,nprocs,ierr)
-
+    call trace_exit("COMMS_SIZE")
   end subroutine COMMS_SIZE
 
 
@@ -205,8 +216,9 @@ contains
     integer:: count,dest_rank,tag
     integer :: send_buff
     !    print*,send_buff
+    call trace_entry("COMMS_SEND_INT")
     call MPI_SEND(send_buff,count,MPI_INT,dest_rank,tag,MPI_COMM_WORLD,ierr)
-
+    call trace_exit("COMMS_SEND_INT")
   end subroutine COMMS_SEND_INT
 
   subroutine COMMS_SEND_REAL(send_buff,count,dest_rank,tag)
@@ -225,7 +237,9 @@ contains
     !==============================================================================!
     integer:: count,dest_rank,tag
     real :: send_buff
+    call trace_entry("COMMS_SEND_REAL")
     call MPI_SEND(send_buff,count,MPI_FLOAT,dest_rank,tag,MPI_COMM_WORLD,ierr)
+    call trace_exit("COMMS_SEND_REAL")
   end subroutine COMMS_SEND_REAL
 
   subroutine COMMS_SEND_DOUBLE(send_buff,count,dest_rank,tag)
@@ -244,9 +258,13 @@ contains
     !==============================================================================!
     integer:: count,dest_rank,tag
     double precision :: send_buff
+    call trace_entry("COMMS_SEND_DOUBLE")
     call MPI_SEND(send_buff,count,MPI_DOUBLE,dest_rank,tag,MPI_COMM_WORLD,ierr)
+    call trace_exit("COMMS_SEND_DOUBLE")
   end subroutine COMMS_SEND_DOUBLE
-  !SEND_Arrays
+
+
+  
   subroutine COMMS_SEND_INT_ARRAY(send_buff,count,dest_rank,tag)
     !==============================================================================!
     !                   C O M M S _ S E N D _ I N T _ A R R A Y                    !
@@ -263,7 +281,9 @@ contains
     !==============================================================================!
     integer:: count,dest_rank,tag
     integer,dimension(count) :: send_buff
+    call trace_entry("COMMS_SEND_INT_ARRAY")
     call MPI_SEND(send_buff,count,MPI_INT,dest_rank,tag,MPI_COMM_WORLD,ierr)
+    call trace_exit("COMMS_SEND_INT_ARRAY")
   end subroutine COMMS_SEND_INT_ARRAY
 
   subroutine COMMS_SEND_REAL_ARRAY(send_buff,count,dest_rank,tag)
@@ -282,9 +302,9 @@ contains
     !==============================================================================!
     integer:: count,dest_rank,tag
     real,dimension(count) :: send_buff
-
+    call trace_entry("COMMS_SEND_REAL_ARRAY")
     call MPI_SEND(send_buff,count,MPI_FLOAT,dest_rank,tag,MPI_COMM_WORLD,ierr)
-
+    call trace_exit("COMMS_SEND_REAL_ARRAY")
   end subroutine COMMS_SEND_REAL_ARRAY
 
   subroutine COMMS_SEND_DOUBLE_ARRAY(send_buff,count,dest_rank,tag)
@@ -303,7 +323,9 @@ contains
     !==============================================================================!
     integer:: count,dest_rank,tag
     double precision,dimension(count) :: send_buff
+    call trace_entry("COMMS_SEND_DOUBLE_ARRAY")
     call MPI_SEND(send_buff,count,MPI_DOUBLE,dest_rank,tag,MPI_COMM_WORLD,ierr)
+    call trace_exit("COMMS_SEND_DOUBLE_ARRAY")
   end subroutine COMMS_SEND_DOUBLE_ARRAY
 
 
@@ -325,9 +347,10 @@ contains
     !==============================================================================!
     integer:: count1,count2,dest_rank,tag
     real,dimension(count1,count2) :: send_buff
-
+    call trace_entry("COMMS_SEND_REAL_ARRAY2D")
     call MPI_SEND(send_buff,count1*count2,MPI_FLOAT,dest_rank,tag,MPI_COMM_WORLD,ierr)
-
+    call trace_EXIT("COMMS_SEND_REAL_ARRAY2D")
+    
   end subroutine COMMS_SEND_REAL_ARRAY2D
 
   subroutine COMMS_SEND_RECV_REAL_ARRAY2D(send_buff,recv_buff,count1,count2,dest_rank,tag,send_rank)
@@ -349,10 +372,10 @@ contains
     !==============================================================================!
     integer:: count1,count2,dest_rank,tag,send_rank
     real,dimension(count1,count2) :: send_buff,recv_buff
-
+    call trace_entry("COMMS_SEND_RECV_REAL_ARRAY2D")
     call MPI_SENDRECV(send_buff,count1*count2,MPI_FLOAT,dest_rank,tag,recv_buff,count1*count2,&
          MPI_FLOAT,send_rank,tag,MPI_COMM_WORLD,ierr)
-
+    call trace_exit("COMMS_SEND_RECV_REAL_ARRAY2D")
 
 
   end subroutine COMMS_SEND_RECV_REAL_ARRAY2D
@@ -378,8 +401,10 @@ contains
     integer:: count,source,tag
     integer, intent(inout) :: recv_buff
     !   print*, "message in routine"
+    call trace_entry("COMMS_RECV_INT")
     call MPI_RECV(recv_buff,count,MPI_INT,source,tag,MPI_COMM_WORLD,status1,ierr)
     !    print*, "after",recv_buff
+    call trace_EXIT("COMMS_RECV_INT")
   end subroutine COMMS_RECV_INT
 
   subroutine COMMS_RECV_REAL(recv_buff,count,source,tag)
@@ -398,11 +423,11 @@ contains
     !==============================================================================!
     integer:: count,source,tag
     real, intent(inout) :: recv_buff
-
+    call trace_entry("COMMS_RECV_REAL")
     !   print*, "Recv sent to routine"
     call MPI_RECV(recv_buff,count,MPI_REAL,source,tag,MPI_COMM_WORLD,status1,ierr)
     !  print*, "Recv success from rank",source 
-
+    call trace_exit("COMMS_RECV_REAL")
   end subroutine COMMS_RECV_REAL
 
   subroutine COMMS_RECV_DOUBLE(recv_buff,count,source,tag)
@@ -421,9 +446,15 @@ contains
     !==============================================================================!
     integer:: count,source,tag
     double precision ,intent(inout) :: recv_buff
+    call trace_entry("COMMS_RECV_DOUBLE")
     call MPI_RECV(recv_buff,count,MPI_DOUBLE,source,tag,MPI_COMM_WORLD,status1,ierr)
+    call trace_exit("COMMS_RECV_DOUBLE")
+    
   end subroutine COMMS_RECV_DOUBLE
-  !RECV ROUTINES ARRAY
+
+
+
+
   subroutine COMMS_RECV_INT_ARRAY(recv_buff,count,source,tag)
     !==============================================================================!
     !                   C O M M S _ R E C V _ I N T _ A R R A Y                    !
@@ -459,7 +490,9 @@ contains
     !==============================================================================!
     integer :: count,source,tag
     real,dimension(count),intent(inout) :: recv_buff
+    call trace_entry("COMMS_RECV_REAL_ARRAY")
     call MPI_RECV(recv_buff,count,MPI_REAL,source,tag,MPI_COMM_WORLD,status1,ierr)
+    call trace_exit("COMMS_RECV_REAL_ARRAY")
   end subroutine COMMS_RECV_REAL_ARRAY
 
   subroutine COMMS_RECV_DOUBLE_ARRAY(recv_buff,count,source,tag)
@@ -478,7 +511,9 @@ contains
     !==============================================================================!
     integer :: count,source,tag
     double precision,dimension(count),intent(inout) :: recv_buff
+    call trace_entry("COMMS_RECV_DOUBLE_ARRAY")
     call MPI_RECV(recv_buff,count,MPI_DOUBLE,source,tag,MPI_COMM_WORLD,status1,ierr)
+    call trace_exit("COMMS_RECV_DOUBLE_ARRAY")
   end subroutine COMMS_RECV_DOUBLE_ARRAY
 
   !2D array
@@ -499,7 +534,9 @@ contains
     !==============================================================================!
     integer :: count1,count2,source,tag
     real,dimension(count1,count2),intent(inout) :: recv_buff
+    call trace_entry("COMMS_RECV_REAL_ARRAY2D")
     call MPI_RECV(recv_buff,count1*count2,MPI_REAL,source,tag,MPI_COMM_WORLD,status1,ierr)
+    call trace_exit("COMMS_RECV_REAL_ARRAY2D")
   end subroutine COMMS_RECV_REAL_ARRAY2D
 
 
@@ -529,6 +566,8 @@ contains
     integer :: send_buff
     character(*) :: OP
 
+    call trace_entry("COMMS_REDUCE_INT")
+    
     if (trim(OP).eq."MPI_MAX")then
        call MPI_REDUCE(send_buff,recv_buff,count,MPI_INT,MPI_MAX,0,MPI_COMM_WORLD,status1,ierr)
     elseif (trim(OP).eq."MPI_MIN")then
@@ -537,6 +576,7 @@ contains
 
        call MPI_REDUCE(send_buff,recv_buff,count,MPI_INT,MPI_SUM,0,MPI_COMM_WORLD,status1,ierr)
     end if
+    call trace_exit("COMMS_REDUCE_INT")
   end subroutine COMMS_REDUCE_INT
 
   subroutine COMMS_REDUCE_REAL(send_buff,recv_buff,count,OP)
@@ -557,7 +597,7 @@ contains
     real,intent(inout) :: recv_buff
     real :: send_buff
     character(*) :: OP
-
+    call trace_entry("COMMS_REDUCE_REAL")
     if (trim(OP).eq."MPI_MAX")then
        call MPI_REDUCE(send_buff,recv_buff,count,MPI_FLOAT,MPI_MAX,0,MPI_COMM_WORLD,status1,ierr)
     elseif (trim(OP).eq."MPI_MIN")then
@@ -565,6 +605,8 @@ contains
     elseif (trim(OP).eq."MPI_SUM")then
        call MPI_REDUCE(send_buff,recv_buff,count,MPI_FLOAT,MPI_SUM,0,MPI_COMM_WORLD,status1,ierr)
     end if
+    call trace_exit("COMMS_REDUCE_REAL")
+    
   end subroutine COMMS_REDUCE_REAL
 
   subroutine COMMS_REDUCE_DOUBLE(send_buff,recv_buff,count,OP)
@@ -587,6 +629,8 @@ contains
     double precision :: send_buff
     character(*) :: OP
 
+    call trace_entry("COMMS_REDUCE_DOUBLE")
+    
     if (trim(OP).eq."MPI_MAX")then
 
        call MPI_REDUCE(send_buff,recv_buff,count,MPI_DOUBLE,MPI_MAX,0,MPI_COMM_WORLD,status1,ierr)
@@ -595,6 +639,8 @@ contains
     elseif (trim(OP).eq."MPI_SUM")then
        call MPI_REDUCE(send_buff,recv_buff,count,MPI_DOUBLE,MPI_SUM,0,MPI_COMM_WORLD,status1,ierr)
     end if
+
+    call trace_exit("COMMS_REDUCE_DOUBLE")
   end subroutine COMMS_REDUCE_DOUBLE
 
   ! ARRAY
@@ -619,6 +665,8 @@ contains
     integer,dimension(count) :: send_buff
     character(*) :: OP
 
+    call trace_entry("COMMS_REDUCE_INT_ARRAY")
+    
     if (trim(OP).eq."MPI_MAX")then
        call MPI_REDUCE(send_buff,recv_buff,count,MPI_INT,MPI_MAX,0,MPI_COMM_WORLD,status1,ierr)
     elseif (trim(OP).eq."MPI_MIN")then
@@ -626,6 +674,7 @@ contains
     elseif (trim(OP).eq."MPI_SUM")then
        call MPI_REDUCE(send_buff,recv_buff,count,MPI_INT,MPI_SUM,0,MPI_COMM_WORLD,status1,ierr)
     end if
+    call trace_exit("COMMS_REDUCE_INT_ARRAY")
   end subroutine COMMS_REDUCE_INT_ARRAY
 
   subroutine COMMS_REDUCE_REAL_ARRAY(send_buff,recv_buff,count,OP)
@@ -647,7 +696,7 @@ contains
     real,dimension(count),intent(inout) :: recv_buff
     real,dimension(count) :: send_buff
     character(*) :: OP
-
+    call trace_entry("COMMS_REDUCE_REAL_ARRAY")
     if (trim(OP).eq."MPI_MAX")then
        call MPI_REDUCE(send_buff,recv_buff,count,MPI_FLOAT,MPI_MAX,0,MPI_COMM_WORLD,status1,ierr)
     elseif (trim(OP).eq."MPI_MIN")then
@@ -655,6 +704,7 @@ contains
     elseif (trim(OP).eq."MPI_SUM")then
        call MPI_REDUCE(send_buff,recv_buff,count,MPI_FLOAT,MPI_SUM,0,MPI_COMM_WORLD,status1,ierr)
     end if
+    call trace_exit("COMMS_REDUCE_REAL_ARRAY")
   end subroutine COMMS_REDUCE_REAL_ARRAY
 
   subroutine COMMS_REDUCE_DOUBLE_ARRAY(send_buff,recv_buff,count,OP)
@@ -676,7 +726,7 @@ contains
     double precision,dimension(count),intent(inout) :: recv_buff
     double precision,dimension(count) :: send_buff
     character(*) :: OP
-
+    call trace_entry("COMMS_REDUCE_DOUBLE_ARRAY")
     if (trim(OP).eq."MPI_MAX")then
        call MPI_REDUCE(send_buff,recv_buff,count,MPI_DOUBLE,MPI_MAX,0,MPI_COMM_WORLD,status1,ierr)
     elseif (trim(OP).eq."MPI_MIN")then
@@ -684,6 +734,7 @@ contains
     elseif (trim(OP).eq."MPI_SUM")then
        call MPI_REDUCE(send_buff,recv_buff,count,MPI_DOUBLE,MPI_SUM,0,MPI_COMM_WORLD,status1,ierr)
     end if
+    call trace_exit("COMMS_REDUCE_DOUBLE_ARRAY")
   end subroutine COMMS_REDUCE_DOUBLE_ARRAY
 
 
@@ -708,7 +759,9 @@ contains
     !==============================================================================!
     integer :: count
     integer :: start_buff
+    call trace_entry("COMMS_BCAST_INT")
     call MPI_BCAST(start_buff, count,MPI_INT,0,MPI_COMM_WORLD,status1,ierr)
+    call trace_exit("COMMS_BCAST_INT")
   end subroutine COMMS_BCAST_INT
 
   subroutine COMMS_BCAST_REAL(start_buff,count)
@@ -726,7 +779,9 @@ contains
     !==============================================================================!
     integer :: count
     real :: start_buff
+    call trace_entry("COMMS_BCAST_REAL")
     call MPI_BCAST(start_buff, count,MPI_FLOAT,0,MPI_COMM_WORLD,status1,ierr)
+    call trace_exit("COMMS_BCAST_REAL")
   end subroutine COMMS_BCAST_REAL
 
   subroutine COMMS_BCAST_DOUBLE(start_buff,count)
@@ -744,7 +799,9 @@ contains
     !==============================================================================!
     integer :: count
     double precision :: start_buff
+    call trace_entry("COMMS_BCAST_DOUBLE")
     call MPI_BCAST(start_buff, count,MPI_DOUBLE,0,MPI_COMM_WORLD,status1,ierr)
+    call trace_exit("COMMS_BCAST_DOUBLE")
   end subroutine COMMS_BCAST_DOUBLE
   !ARRAY
   subroutine COMMS_BCAST_INT_ARRAY(start_buff,count)
@@ -762,7 +819,9 @@ contains
     !==============================================================================!
     integer :: count
     integer,dimension(count) :: start_buff
+    call trace_entry("COMMS_BCAST_INT_ARRAY")
     call MPI_BCAST(start_buff, count,MPI_INT,0,MPI_COMM_WORLD,status1,ierr)
+    call trace_exit("COMMS_BCAST_INT_ARRAY")
   end subroutine COMMS_BCAST_INT_ARRAY
 
   subroutine COMMS_BCAST_REAL_ARRAY(start_buff,count)
@@ -798,7 +857,9 @@ contains
     !==============================================================================!
     integer :: count
     double precision,dimension(count) :: start_buff
+    call trace_entry("COMMS_BCAST_DOUBLE_ARRAY")
     call MPI_BCAST(start_buff, count,MPI_DOUBLE,0,MPI_COMM_WORLD,status1,ierr)
+    call trace_exit("COMMS_BCAST_DOUBLE_ARRAY")
   end subroutine COMMS_BCAST_DOUBLE_ARRAY
 
 
