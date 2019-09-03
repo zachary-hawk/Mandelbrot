@@ -297,7 +297,7 @@ contains
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
 
-    integer                      :: IOstatus=0,i,counter,j
+    integer                      :: i,counter,j,stat=0,max_stat
     character(len=30)            :: chara,name,val,z_re_char,z_im_char,junk
 
     logical                      :: change_ux=.FALSE.
@@ -310,13 +310,14 @@ contains
 
     call trace_entry("READ_PARAMETERS")
 
+    
     inquire(file="param.mand", EXIST=file_exist)
     if (file_exist)then 
        open(unit=24,file="param.mand",status="OLD",access="stream",form="formatted")
 
-       do while (IOstatus .eq. 0) 
+       do while (max_stat .eq. 0) 
 
-          read(24,'(A)',IOSTAT=IOstatus)junk
+          read(24,'(A)',IOSTAT=max_stat)junk
 
           do j=1,len_trim(junk)
 
@@ -326,7 +327,6 @@ contains
 
                 exit
              elseif (j.eq.len_trim(junk))then
-                !                print*, name, j, "no colon found"
                 call Errors("User I/O Error")                
              endif
           enddo
@@ -340,34 +340,43 @@ contains
           val=adjustl(val)
 
           if (adjustl(name).eq."grid_size")then
-             read(val,'(i6)')N
+             read(val,'(i6)',iostat=stat)N
+             if (stat.ne.0)call errors("Error in I/O read from param.mand: "//trim(val))
           elseif (name.eq."max_iter")then
-             read(val,'(i12)')max_iter
+             read(val,'(i12)',iostat=stat)max_iter
+             if (stat.ne.0)call errors("Error in I/O read from param.mand: "//trim(val))
              change_iter=.TRUE.
           elseif (name.eq."exponent")then
              call int_to_real(val)
-             read(val,'(f5.2)')e_default
+             read(val,'(f5.2)',iostat=stat)e_default
+             if (stat.ne.0)call errors("Error in I/O read from param.mand: "//trim(val))
              change_exp=.true.
           elseif (name.eq."buddah_const".or.name.eq."Buddah_const")then
-             read(val,'(i12)')buddah_param
+             read(val,'(i12)',iostat=stat)buddah_param
+             if (stat.ne.0)call errors("Error in I/O read from param.mand: "//trim(val))
           elseif (name.eq."julia_const")then
-             read(val,*)julia_const
+             read(val,*,iostat=stat)julia_const
+             if (stat.ne.0)call errors("Error in I/O read from param.mand: "//trim(val))
              change_julia=.TRUE.
           elseif (name.eq."x_low")then
              call int_to_real(val)
-             read(val,'(f15.10)')lower_x
+             read(val,'(f15.10)',iostat=stat)lower_x
+             if (stat.ne.0)call errors("Error in I/O read from param.mand: "//trim(val))
              change_lx=.true.
           elseif (name.eq."x_up")then
              call int_to_real(val)
-             read(val,'(f15.10)')upper_x
+             read(val,'(f15.10)',iostat=stat)upper_x
+             if (stat.ne.0)call errors("Error in I/O read from param.mand: "//trim(val))
              change_ux=.true.
           elseif (name.eq."y_low")then
              call int_to_real(val)
-             read(val,'(f15.10)')lower_Y
+             read(val,'(f15.10)',iostat=stat)lower_Y
+             if (stat.ne.0)call errors("Error in I/O read from param.mand: "//trim(val))
              change_ly=.true.        
           elseif (name.eq."y_up")then
              call int_to_real(val)
-             read(val,'(f15.10)')upper_Y
+             read(val,'(f15.10)',iostat=stat)upper_Y
+             if (stat.ne.0)call errors("Error in I/O read from param.mand: "//trim(val))
              change_uy=.true.       
           elseif (name.eq."debug")then
              if(val.eq."true")then
@@ -389,12 +398,13 @@ contains
           elseif (name.eq."bail_out")then
              do i=1,len_trim(val)
                 if (val(1:1).eq."e")then 
-                   read(val,'(E11.4)')bail_out
+                   read(val,'(E11.4)',iostat=stat)bail_out
+                   if (stat.ne.0)call errors("Error in I/O read from param.mand: "//trim(val))
                    exit
                 elseif(i.eq.len_trim(val))then
                    call int_to_real(val)
-                   read(val,'(f15.10)')bail_out
-
+                   read(val,'(f15.10)',iostat=stat)bail_out
+                   if (stat.ne.0)call errors("Error in I/O read from param.mand: "//trim(val))
                 else
                    cycle
                 end if
@@ -492,6 +502,7 @@ contains
        if (.not.change_uy)upper_y=2.0
        if (.not.change_exp)e_default=3.0
     end if
+
     call trace_exit("READ_PARAMETERS")
   end subroutine READ_PARAMETERS
 
@@ -574,7 +585,7 @@ contains
 
     write(*,73) adjustl("JULIA_CONST"),":","Specify Julia set constant"
     write(*,78) "Allowed",":","any complex"
-    write(*,74) "Default",":","(0.0,0.0)"
+    write(*,74) "Default",":","(0.285,0.01)"
     write(*,*)
 
     write(*,73) adjustl("X_UP"),":","Sepcify maximum x co-ordinate"
@@ -720,10 +731,11 @@ contains
     implicit none
     character(*)::message
 
-
+    
     open(20,file="err.mand",status="unknown",access="append")
     write(20,*) "Error: ",trim(message)
     close(20)
+    
     stop
 
   end subroutine errors

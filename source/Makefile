@@ -15,8 +15,8 @@ ifeq ($(strip $(VAR)),)
 VAR="'Unknown'"
 endif
 #FC=mpif90
-FCFLAGSCPP= -cpp -O1  -funroll-loops -D arch=$(VAR) -D direc=$(DIR) -D cpu=$(CPU) -xHost -p #-ipo  -g
-FCFLAGS=  -O1  -funroll-loops -xHost -p #-ipo -g
+FCFLAGSCPP= -cpp -O3 --traceback  -funroll-loops -D arch=$(VAR) -D direc=$(DIR) -D cpu=$(CPU) -xHost -p #-ipo  -g
+FCFLAGS=  -O3  -funroll-loops -xHost -p -traceback
 BUILD_DIR ?= ./../build
 
 
