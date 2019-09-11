@@ -1,4 +1,4 @@
-!---- File documented byA Fortran Documenter, Z.Hawkhead
+!---- File documented by Fortran Documenter, Z.Hawkhead
 !=============================================================================!
 !                                fractal                                      !
 !=============================================================================!
@@ -16,7 +16,7 @@ module fractal
 
 contains
 
-  function mand(Max_iter,z,c,e) result(k_real)
+  function fractal_mand(Max_iter,z,c,e) result(k_real)
     !==============================================================================!
     !                                   M A N D                                    !
     !==============================================================================!
@@ -38,15 +38,18 @@ contains
     complex(complex_kind)::z,c,z_old=(0,0)
     integer :: k
     real :: e,z_cum=0,k_real
-!    call trace_entry("MAND")
+    k_real=0
     if (e.EQ.int(e))then 
        do k=1,Max_iter
           z_old=z
           z = z**int(e)+c
+
           if (triangle)then
-             call triangle_ineq(z,c,z_old,z_cum,k)
+             call colour_triangle_ineq(z,c,z_old,z_cum,k)
           elseif (ave_an)then
-             call ave_angle(z,k_real)
+             call colour_ave_angle(z,k_real)
+          else if (exponential)then
+             call colour_exponential(z,k_real)
           end if
           if (abs(z).gt.bail_out) then
              exit
@@ -57,10 +60,12 @@ contains
           z_old=z
           z = z**e+c
           if (triangle)then
-             call triangle_ineq(z,c,z_old,z_cum,k)
+             call colour_triangle_ineq(z,c,z_old,z_cum,k)
 
           elseif (ave_an)then
-             call ave_angle(z,k_real)
+             call colour_ave_angle(z,k_real)
+          else if (exponential)then
+             call colour_exponential(z,k_real)
           end if
           if (abs(z).gt.bail_out) then
              exit
@@ -70,20 +75,23 @@ contains
 
     if (triangle)then
        k_real=z_cum/real(k)
-
        if (isnan(k_real))k_real=0
        z_cum=0
+
     elseif(ave_an)then 
        k_real=k_real/real(k)
-!      if (isnan(k_real))k_real=0
-    else
-       call smooth_iter(k,z,k_real)
+    else if(simple_set)then
+       call colour_set(k,k_real)
+    elseif(smooth)then
+       call colour_smooth_iter(k,z,k_real)
     end if
-!    call trace_exit("MAND")
-  end function mand
 
 
-  function julia(Max_iter,c,z,e) result(k_real)
+
+  end function fractal_mand
+
+
+  function fractal_julia(Max_iter,c,z,e) result(k_real)
     !==============================================================================!
     !                                  J U L I A                                   !
     !==============================================================================!
@@ -104,16 +112,19 @@ contains
     complex(complex_kind)::z,c,z_old=(0,0)
     integer :: k
     real :: e,z_cum=0,k_real
-!    call trace_entry("JULIA")
+    k_real=0
+    !    call trace_entry("JULIA")
     if (e.EQ.int(e))then
        do k=0,Max_iter
           z_old=z
           z = z**int(e)+c
 
           if (triangle)then
-             call triangle_ineq(z,c,z_old,z_cum,k)
+             call colour_triangle_ineq(z,c,z_old,z_cum,k)
           elseif (ave_an)then
-             call ave_angle(z,k_real)
+             call colour_ave_angle(z,k_real)
+          else if (exponential)then
+             call colour_exponential(z,k_real)
           end if
           if (abs(z).gt.bail_out) then
              exit
@@ -124,9 +135,11 @@ contains
           z_old=z       
           z = z**e+c
           if (triangle)then
-             call triangle_ineq(z,c,z_old,z_cum,k)
+             call colour_triangle_ineq(z,c,z_old,z_cum,k)
           elseif (ave_an)then
-             call ave_angle(z,k_real)
+             call colour_ave_angle(z,k_real)
+          else if (exponential)then
+             call colour_exponential(z,k_real)
           end if
           if (abs(z).gt.bail_out) then
              exit
@@ -140,16 +153,18 @@ contains
        z_cum=0
     elseif(ave_an)then
        k_real=k_real/real(k)
-!       if (isnan(k_real))k_real=0
-    else
-       call smooth_iter(k,z,k_real)
+       !       if (isnan(k_real))k_real=0
+    else if(simple_set)then
+       call colour_set(k,k_real)
+    elseif(smooth)then
+       call colour_smooth_iter(k,z,k_real)
 
     end if
-!    call trace_exit("JULIA")
-  end function julia
+    !    call trace_exit("JULIA")
+  end function fractal_julia
 
 
-  function burning(Max_iter,z,c,e) result(k_real)
+  function fractal_burning(Max_iter,z,c,e) result(k_real)
     !==============================================================================!
     !                                B U R N I N G                                 !
     !==============================================================================!
@@ -172,7 +187,8 @@ contains
     complex(complex_kind)::z,c,z_old=(0,0)
     integer :: k
     real :: e,z_cum=0,k_real
-!    call trace_entry("BURNING")
+    k_real=0
+    !    call trace_entry("BURNING")
     if (e.EQ.int(e))then
        do k=0,Max_iter
 
@@ -180,9 +196,11 @@ contains
           z_old=z
           z = (abs(real(z))+cmplx(0,1)*abs(aimag(z)))**int(e)+c
           if (triangle)then
-             call triangle_ineq(z,c,z_old,z_cum,k)
+             call colour_triangle_ineq(z,c,z_old,z_cum,k)
           elseif (ave_an)then
-             call ave_angle(z,k_real)
+             call colour_ave_angle(z,k_real)
+          else if (exponential)then
+             call colour_exponential(z,k_real)
           end if
 
           if (abs(z).gt.bail_out) then
@@ -194,9 +212,11 @@ contains
           z_old=z
           z = (abs(real(z))+cmplx(0,1)*abs(aimag(z)))**e+c
           if (triangle)then
-             call triangle_ineq(z,c,z_old,z_cum,k)
+             call colour_triangle_ineq(z,c,z_old,z_cum,k)
           elseif (ave_an)then
-             call ave_angle(z,k_real)
+             call colour_ave_angle(z,k_real)
+          else if (exponential)then
+             call colour_exponential(z,k_real)
           end if
           if (abs(z).gt.bail_out) then
              exit
@@ -210,15 +230,17 @@ contains
     elseif(ave_an)then
        k_real=k_real/k
        if (isnan(k_real))k_real=0
-    else
-       call smooth_iter(k,z,k_real)
+    else if(simple_set)then
+       call colour_set(k,k_real)
+    elseif(smooth)then
+       call colour_smooth_iter(k,z,k_real)
     end if
-!    call trace_exit("BURINING")
-  end function burning
+    !    call trace_exit("BURINING")
+  end function fractal_burning
 
 
 
-  function random_pos() result(z)
+  function fractal_random_pos() result(z)
     !==============================================================================!
     !                             R A N D O M _ P O S                              !
     !==============================================================================!
@@ -237,8 +259,8 @@ contains
     integer::i,j
     real::z_re,z_im,theta,floater
     character(len=100)::path_string,thing
-!    call trace_entry("RANDOM_POS")
-    
+    !    call trace_entry("RANDOM_POS")
+
 #ifdef direc
 #define thing direc
 #endif
@@ -249,7 +271,7 @@ contains
     !    open(unit=35,file="perim.mand")
 
 
-    call init_random_seed()
+    call fractal_init_random_seed()
 
     call random_number(floater)
     i=int(floater*1666)
@@ -257,11 +279,11 @@ contains
        read(35,*)perim_z
     end do
 
-    call init_random_seed()
+    call fractal_init_random_seed()
     call random_number(floater)
     theta=2*3.1415*floater
 
-    call init_random_seed()
+    call fractal_init_random_seed()
     call random_number(floater)
 
     floater=floater*0.1
@@ -272,11 +294,11 @@ contains
     z=cmplx(z_re,z_im)
 
     close(35)
-!    call trace_exit("RANDOM_POS")
-  end function random_pos
+    !    call trace_exit("RANDOM_POS")
+  end function fractal_random_pos
 
 
-  subroutine init_random_seed()
+  subroutine fractal_init_random_seed()
     !==============================================================================!
     !                       I N I T _ R A N D O M _ S E E D                        !
     !==============================================================================!
@@ -299,11 +321,11 @@ contains
     read(un) seed
     close(un)
     call random_seed(put=seed)
-  end subroutine init_random_seed
+  end subroutine fractal_init_random_seed
 
 
 
-  function p(z,e) result(z_out)
+  function fractal_p(z,e) result(z_out)
     !==============================================================================!
     !                                      P                                       !
     !==============================================================================!
@@ -324,13 +346,13 @@ contains
     real :: e
     if (e.eq.int(e))then
        z_out=z**int(e)-1
-       !       z_out=sin(z)-1
     else
        z_out=z**(e)-1
     endif
-  end function p
 
-  function diff(z,e) result(grad)
+  end function fractal_p
+
+  function fractal_diff(z,e) result(grad)
     !==============================================================================!
     !                                   D I F F                                    !
     !==============================================================================!
@@ -348,15 +370,12 @@ contains
     implicit none
     real :: e
     complex(complex_kind) :: grad,z,dx=1e-10
-
-    grad=(-p(z-dx,e)+p(z+dx,e))/(2*dx)
-
-    !       grad=e*z**int(e-1)
-  end function diff
+    grad=e*z**(e-1)
+  end function fractal_diff
 
 
 
-  function Newton(Max_iter,z,e) result(theta)
+  function fractal_newton(Max_iter,z,e,nova) result(theta)
     !==============================================================================!
     !                                 N E W T O N                                  !
     !==============================================================================!
@@ -373,27 +392,281 @@ contains
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
     implicit none
-    complex(complex_kind) :: z
+    complex(complex_kind) :: z,z_old,z_pix
     real :: theta,e
     integer :: k,Max_iter
-!    call trace_entry("NEWTON")
+    logical :: nova
+    theta=0
+    if(nova)then
+       z_pix=z
+       if (abs(julia_const).gt.0) z=julia_const
+    else
+       z_pix=(0,0)
+    end if
+
     do k=0,max_iter
-       !       if (abs(p(z,e)/diff(z,e)).lt.real(1e-17))then
-       !          exit
-       !       end if
-       z=z-p(z,e)/diff(z,e)
+       z_old=z
+       z=z-relaxation*fractal_p(z,e)/fractal_diff(z,e)+z_pix
+
+
+       if(abs(z_old-z).lt.1.0e-6)exit
+       if (exponential) call colour_exponential(1/(z-z_old),theta)
 
     end do
 
+    if(smooth)then
+       call colour_smooth_iter(k,z,theta)
+    endif
 
-    theta=atan(aimag(z)/real(z))
-
-
-!    call trace_exit("NEWTON")
-  end function Newton
-
+  end function fractal_newton
 
 
+  function fractal_magnet(Max_iter,z,c,e) result(k_real)
+    !==============================================================================!
+    !                         F R A C T A L _ M A G N E T                          !
+    !==============================================================================!
+    ! Formula for calculating the Magnet set fractal.                              !
+    !------------------------------------------------------------------------------!
+    ! Arguments:                                                                   !
+    !           Max_iter,          intent :: in                                    !
+    !           z,                 intent :: in                                    !
+    !           c,                 intent :: in                                    !
+    !           e,                 intent :: in                                    !
+    !------------------------------------------------------------------------------!
+    ! Result:                                                                      !
+    !           k_real                                                             !
+    !------------------------------------------------------------------------------!
+    ! Author:   Z. Hawkhead  16/08/2019                                            !
+    !==============================================================================!
+    implicit none
+    integer,intent(in)::Max_iter 
+    complex(complex_kind)::z,c,z_old=(0,0)
+    integer :: k
+    real :: e,z_cum=0,k_real
+    k_real=0
+    if (e.EQ.int(e))then 
+       do k=1,Max_iter
+          z_old=z
+          z = ((z**int(e)+c-1)/(e*z+c-2))**2
+
+          if (triangle)then
+             call colour_triangle_ineq(z,c,z_old,z_cum,k)
+          elseif (ave_an)then
+             call colour_ave_angle(z,k_real)
+          elseif(exponential)then
+             call colour_exponential(z,k_real)
+          end if
+          if (abs(z).gt.bail_out) then
+             exit
+          end if
+       end do
+    else
+       do k=0,Max_iter
+          z_old=z
+          z = ((z**e+c-1)/(e*z+c-2))**2
+          if (triangle)then
+             call colour_triangle_ineq(z,c,z_old,z_cum,k)
+
+          elseif (ave_an)then
+             call colour_ave_angle(z,k_real)
+          elseif(exponential)then
+             call colour_exponential(z,k_real)
+          end if
+          if (abs(z).gt.bail_out) then
+             exit
+          end if
+       end do
+    end if
+
+    if (triangle)then
+       k_real=z_cum/real(k)
+       if (isnan(k_real))k_real=0
+       z_cum=0
+
+    elseif(ave_an)then 
+       k_real=k_real/real(k)
+    else if(simple_set)then
+       call colour_set(k,k_real)
+    elseif(smooth)then
+       call colour_smooth_iter(k,z,k_real)
+    end if
+
+  end function fractal_magnet
+
+
+  function fractal_phoenix(Max_iter,c,z,e) result(k_real)
+    !==============================================================================!
+    !                        F R A C T A L _ P H O E N I X                         ! 
+    !==============================================================================!
+    ! Formula for calculating one of the Phoenix set fractals.                     !
+    !------------------------------------------------------------------------------!
+    ! Arguments:                                                                   !
+    !           Max_iter,          intent :: in                                    !
+    !           c,                 intent :: in                                    !
+    !           z,                 intent :: in                                    !
+    !           e,                 intent :: in                                    !
+    !------------------------------------------------------------------------------!
+    ! Result:                                                                      !
+    !           k_real                                                             !
+    !------------------------------------------------------------------------------!
+    ! Author:   Z. Hawkhead  16/08/2019                                            !
+    !==============================================================================!
+    integer,intent(in)    :: Max_iter 
+    complex(complex_kind) :: z,c,z_old=(0,0)
+    complex(complex_kind) :: z_2
+    complex(complex_kind),dimension(:),allocatable :: history
+    integer :: k
+    real :: e,z_cum=0,k_real
+
+    allocate(history(0:max_iter))
+    k_real=0
+
+    if (e.EQ.int(e))then
+       history(0)=z
+       history(1)=z**int(e)+real(c)+aimag(c)*z
+       do k=2,Max_iter
+
+          z_old=z
+
+          z = history(k-1)**int(e)+real(c)+aimag(c)*history(k-2)
+          history(k)=z
+          if (triangle)then
+             call colour_triangle_ineq(z,c,z_old,z_cum,k)
+          elseif (ave_an)then
+             call colour_ave_angle(z,k_real)
+          else if (exponential)then
+             call colour_exponential(z,k_real)
+          end if
+          if (abs(z).gt.bail_out) then
+             exit
+          end if
+       end do
+    else
+       history(0)=z
+       history(1)=z**e+real(c)+aimag(c)*z
+       do k=0,Max_iter
+          z_old=z       
+          z = history(k-1)**e+real(c)+aimag(c)*history(k-2)
+          history(k)=z
+          if (triangle)then
+             call colour_triangle_ineq(z,c,z_old,z_cum,k)
+          elseif (ave_an)then
+             call colour_ave_angle(z,k_real)
+          else if (exponential)then
+             call colour_exponential(z,k_real)
+          end if
+          if (abs(z).gt.bail_out) then
+             exit
+          end if
+       end do
+    end if
+
+    if (triangle)then
+       k_real=z_cum/real(k)
+       if (isnan(k_real))k_real=0
+       z_cum=0
+    elseif(ave_an)then
+       k_real=k_real/real(k)
+       if (isnan(k_real))k_real=0
+    else if(simple_set)then
+       call colour_set(k,k_real)
+    elseif(smooth)then
+       call colour_smooth_iter(k,z,k_real)
+
+    end if
+    deallocate(history)
+  end function fractal_phoenix
+
+
+  function fractal_rational(Max_iter,c,z,e_1,e_2,lambda) result(k_real)
+
+    integer,intent(in)::Max_iter 
+    complex(complex_kind)::z,c,z_old=(0,0)
+    integer :: k
+    real :: e_1,e_2,z_cum=0,k_real,lambda
+    k_real=0
+    if (e_1.eq.int(e_1).and.e_2.eq.int(e_2))then
+       do k=0,Max_iter
+          z_old=z
+          z = z**int(e_1)+c+lambda*z**int(e_2)
+
+          if (triangle)then
+             call colour_triangle_ineq(z,c,z_old,z_cum,k)
+          elseif (ave_an)then
+             call colour_ave_angle(z,k_real)
+          else if (exponential)then
+             call colour_exponential(z,k_real)
+          end if
+          if (abs(z).gt.bail_out) then
+             exit
+          end if
+       end do
+    elseif (e_1.eq.int(e_1).and.e_2.ne.int(e_2))then
+       do k=0,Max_iter
+          z_old=z
+          z = z**int(e_1)+c+lambda*z**e_2
+
+          if (triangle)then
+             call colour_triangle_ineq(z,c,z_old,z_cum,k)
+          elseif (ave_an)then
+             call colour_ave_angle(z,k_real)
+          else if (exponential)then
+             call colour_exponential(z,k_real)
+          end if
+          if (abs(z).gt.bail_out) then
+             exit
+          end if
+       end do
+    elseif (e_1.ne.int(e_1).and.e_2.eq.int(e_2))then
+       do k=0,Max_iter
+          z_old=z
+          z = z**e_1+c+lambda*z**int(e_2)
+
+          if (triangle)then
+             call colour_triangle_ineq(z,c,z_old,z_cum,k)
+          elseif (ave_an)then
+             call colour_ave_angle(z,k_real)
+          end if
+          if (abs(z).gt.bail_out) then
+             exit
+          end if
+       end do
+
+    else 
+       do k=0,Max_iter
+          z_old=z       
+          z = z**e_1+c+lambda*z**e_2
+          if (triangle)then
+             call colour_triangle_ineq(z,c,z_old,z_cum,k)
+          elseif (ave_an)then
+             call colour_ave_angle(z,k_real)
+          else if (exponential)then
+             call colour_exponential(z,k_real)
+          end if
+          if (abs(z).gt.bail_out) then
+             exit
+          end if
+       end do
+    end if
+
+    if (triangle)then
+       k_real=z_cum/real(k)
+
+       if (isnan(k_real))k_real=0
+
+       z_cum=0
+    elseif(ave_an)then
+       k_real=k_real/real(k)
+    else if (exponential)then
+       call colour_exponential(z,k_real)
+    else if(simple_set)then
+       call colour_set(k,k_real)
+    elseif(smooth)then
+       call colour_smooth_iter(k,z,k_real)
+
+    end if
+
+  end function fractal_rational
 
 
 end module fractal

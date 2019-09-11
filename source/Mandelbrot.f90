@@ -22,7 +22,6 @@ program Mandelbrot
   double precision                :: start, finish ,inp_st, inp_fn,int_time,par_start,par_end
   double precision                :: par_time=0.0,tot_par_time,total_proc_times
   double precision                :: after_calc,after_calc_buff
-  integer                         :: nprocs, rank, rem 
   integer                         :: narg,cptArg,buddah_counter=0,buddah_buff_counter !#of arg & counter of arg
   character(len=20)               :: name !Arg name
   logical                         :: args_bool=.FALSE.,dryrun=.false.,lookfor_c=.false.,on_root
@@ -32,33 +31,21 @@ program Mandelbrot
   real                            :: tolerance,frac,memory_size=0,memory_buffer=0,theta
   real                            :: disk_stor=0,k,colour_ref,colour_ref_buff,comms_time_buff
 
+  real                            :: cos_thing
   call trace_init()
+
 
 
 
   !SET UP MPI ENVIRONMENT
   CALL COMMS_INIT()
 
-  call COMMS_RANK(rank)             
-  call COMMS_SIZE(nprocs)   
+
   start=COMMS_WTIME()
   if(rank.eq.0)then
      on_root=.true.
   else
      on_root=.false.
-  end if
-
-
-
-
-!!! Define the parameters from the param.mand
-
-  call READ_PARAMETERS()
-  !Ensure commensurate with cores
-  if (.not.b_for_carrying)then 
-     do while (mod(N,nprocs).gt.0)
-        N=N+1
-     end do
   end if
 
   ! Set up Commandline Parser
@@ -76,7 +63,7 @@ program Mandelbrot
 
         select case(adjustl(name))
         case("--help","-h")
-           call print_help()
+           call io_print_help()
            stop
         case("-v","--version")
            write(*,*) trim(Parser_version)
@@ -87,7 +74,7 @@ program Mandelbrot
         case("-l","--list")
            write(*,*) trim(Parser_version)
            write(*,*) trim(info)
-           call params()
+           call io_params()
            stop
         case("-d","--dryrun")
            dryrun=.TRUE.
@@ -95,9 +82,25 @@ program Mandelbrot
         case default
            write(*,33)"Undefined Flag:", name
 33         format(1x,A,1x,A)
-           call print_help()
+           call io_print_help()
            stop
         end select
+     end do
+  end if
+
+
+
+!!! Define the parameters from the param.mand
+
+  call io_read_parameters()
+
+  
+
+
+  !Ensure commensurate with cores
+  if (.not.b_for_carrying)then 
+     do while (mod(N,nprocs).gt.0)
+        N=N+1
      end do
   end if
 
@@ -120,11 +123,13 @@ program Mandelbrot
 
 
   if (upper_X-lower_X .lt. 0 .or.upper_Y-lower_Y .lt. 0) then 
-     if (on_root) call errors("Extent definition ambiguous"  )
+     if (on_root) call io_errors("Extent definition ambiguous"  )
   else if (N.lt.0)then
-     if (on_root) call errors("Grid size must be positve integer")
+     if (on_root) call io_errors("Grid size must be positve integer")
   else if (Max_iter.lt.0)then
-     if (on_root) call errors(" Max No. iterations must be positive integer")
+     if (on_root) call io_errors(" Max No. iterations must be positive integer")
+  else if (triangle.and.abs(julia_const).eq.0)then
+     if (on_root) call io_errors("TIA unavailible when COMPLEX_SEED=0")
   end if
 
 
@@ -167,7 +172,7 @@ program Mandelbrot
               open(unit=99,file="data.mand",status="unknown",access="stream",form="Unformatted")
               inquire(unit=99,size=data_size)
               if (data_size /= ((N**2)*4+8))then
-                 if (on_root) call errors("Incompatible grid size for continuation")
+                 if (on_root) call io_errors("Incompatible grid size for continuation")
               else
                  read(99)set
                  set=cshift(set,1)
@@ -182,14 +187,14 @@ program Mandelbrot
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! FILE WRITTING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  if (on_root) call File(nprocs,memory_buffer,disk_stor)
+  if (on_root) call io_file(nprocs,memory_buffer,disk_stor)
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
 
   !Check for dryrun
-  if(dryrun) call print_dry(on_root)
+  if(dryrun) call io_print_dry(on_root)
 
   if (on_root)then
      write(stdout,*)"--------------------------------------------------------------------------- <-- TIME"
@@ -230,9 +235,9 @@ program Mandelbrot
         end do
 
         z=cmplx(0,0)
-        c=random_pos()
+        c=fractal_random_pos()
 
-        if (mand(max_iter,z,c,2.).gt.max_iter)then
+        if (fractal_mand(max_iter,z,c,2.).gt.max_iter)then
            cycle
         end if
 
@@ -240,7 +245,7 @@ program Mandelbrot
         z=cmplx(0,0)
         do j=1,Max_iter
            z=z**2+c
-!           if(debug)print*, abs(z)
+           !           if(debug)print*, abs(z)
            if (abs(z).gt.bail_out) exit
 
            k=int(N*(real(z)-lower_x)/(upper_x-lower_x))
@@ -273,11 +278,14 @@ program Mandelbrot
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
      !and the Mandelbrot and Julia and newt
 
+
   else
 
      do i=1+rank*N/nprocs,(rank+1)*N/nprocs
 
         do j=1,N
+
+           
 
            c = cmplx(lower_X+i*dx,lower_Y+j*dy)
 
@@ -285,29 +293,39 @@ program Mandelbrot
 
            if (J_FOR_CARRYING)then
               z=julia_const
-              k=julia(Max_iter,z,c,e_default)
+              k=fractal_julia(Max_iter,z,c,e_default)
 
            elseif(newt_for_carrying)then
 
-              theta=Newton(max_iter,c,e_default)
+              theta=fractal_newton(max_iter,c,e_default,do_nova)
 
            elseif(burn_for_carrying)then
               z=julia_const
-              k=burning(Max_iter,z,c,e_default)
+              k=fractal_burning(Max_iter,z,c,e_default)
+           elseif(do_magnet)then
+              z=(0,0)
+              k=fractal_magnet(Max_iter,z,c,e_default)
+           elseif(do_phoenix)then
+              z=julia_const
+              k=fractal_phoenix(Max_iter,z,c,e_default)
+           elseif(do_rational)then
+              z=julia_const
+              k=fractal_rational(Max_iter,z,c,e_default,e_rational,lambda)
+
            else
               z=(0,0)
 
-              k=mand(Max_iter,z,c,e_default)
+              k=fractal_mand(Max_iter,z,c,e_default)
 
            end if
 
 
            if (lookfor_PARALLEL) then
               if(newt_for_carrying)then
-                 Buffer_mpi(j)=theta+rank
+                 Buffer_mpi(j)=theta+rank*10
               else
 
-                 colour_ref =k -Max_iter-1+k + Max_iter*rank
+                 colour_ref =k+rank*10
                  Buffer_mpi(j)=colour_ref
               end if
            else 
@@ -369,6 +387,7 @@ program Mandelbrot
   end if
   call trace_exit("MAIN_CALC")
   after_calc=COMMS_WTIME()
+
 
   !plotting perimeter points
 

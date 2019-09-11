@@ -72,6 +72,7 @@ f.close()
 #print(data)
 
 
+#plt.imshow(data,origin = "centre",cmap = color)
 plt.imsave("img.png",data,origin = "centre",cmap = color)#,extent = (minx,maxx,miny,maxy))
-
+plt.show()
 

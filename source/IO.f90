@@ -1,4 +1,4 @@
-!---- File documented by Fortran Documenter, Z.Hawkhead
+!----file documented by Fortran Documenter, Z.Hawkhead
 !=============================================================================!
 !                                     IO                                      !                                                                                                            
 !=============================================================================!                                                                                                                            
@@ -8,13 +8,16 @@
 !=============================================================================!
 module IO
   use iso_fortran_env
-  use comms
+  use comms , only : rank,max_version_length,comms_arch,COMMS_VERSION,COMMS_LIBRARY_VERSION,COMMS_FINALISE
   use trace
   implicit none
 !!!!!! DEFINE THE DEFAULTS !!!!!!!!!
   integer          :: N=1000
   integer          :: Max_iter=50
+  real             :: relaxation=1
   real             :: e_default=2.
+  real             :: e_rational=-2
+  real             :: lambda=1
   real             :: bail_out=1.e5
   integer          :: buddah_param=10000
   integer          :: stdout
@@ -34,8 +37,15 @@ module IO
   logical          :: continuation=.FALSE.
   logical          :: file_exist
   logical          :: triangle=.false.
+  logical          :: exponential=.false.
+  logical          :: simple_set=.false.
   logical          :: ave_an=.false.
+  logical          :: smooth=.true.
   logical          :: do_mandelbrot=.true.
+  logical          :: do_magnet=.false.
+  logical          :: do_phoenix=.false.
+  logical          :: do_nova=.false.
+  logical          :: do_rational
   logical          :: debug=.false.
   complex          :: julia_const=(0.285,0.01)
   character(81)    :: parser_version="Mandelbrot v.3.0, Z.Hawkhead" 
@@ -52,11 +62,11 @@ contains
 
 
 
-  subroutine header()
+  subroutine io_header()
     !==============================================================================!
     !                                 H E A D E R                                  !
     !==============================================================================!
-    ! Subroutine used to write the header of the main Mandelbrot output file       !
+    ! Subroutine used to write the io_header of the main Mandelbrot output file    !
     ! "out.mand".                                                                  !
     !------------------------------------------------------------------------------!
     ! Arguments:                                                                   !
@@ -69,7 +79,7 @@ contains
     integer :: maj_mpi,min_mpi,min_char
     character(len=max_version_length) :: mpi_c_version
     character(len=3) :: MPI_version_num
-    call trace_entry("HEADER")
+    call trace_entry("IO_HEADER")
     if (comms_arch.eq."MPI")then
        call COMMS_LIBRARY_VERSION(mpi_c_version)
        call COMMS_VERSION(min_mpi,maj_mpi)
@@ -120,23 +130,23 @@ contains
     write(stdout,*) "| ",parser_version,"|"
     write(stdout,*) "+==================================================================================+"
     write(stdout,*)
-    write(stdout,*) "Compiled with ",compiler," ",Trim(version), " on ", __DATE__, " at ",__TIME__
-    write(stdout,*) "Compiled for CPU: ",trim(cpuinfo)
-    write(stdout,*) "Compiled for system: ",trim(arch_string)
+    write(stdout,*) "Compio_filed with ",compiler," ",Trim(version), " on ", __DATE__, " at ",__TIME__
+    write(stdout,*) "Compio_filed for CPU: ",trim(cpuinfo)
+    write(stdout,*) "Compio_filed for system: ",trim(arch_string)
     write(stdout,"(1x,A,i3)") "Complex precision: ",8*complex_kind
     write(stdout,*) "Communications architechture: ",trim(comms_arch)
     if (comms_arch.eq."MPI")then
        write(stdout,*) "MPI Version: ",mpi_c_version(1:min_char+1)
     end if
     write(stdout,*)
-    call trace_exit("HEADER")
-  end subroutine header
+    call trace_exit("IO_HEADER")
+  end subroutine io_header
 
-  subroutine File(nprocs,memory_buffer,disk_stor)
+  subroutine io_file(nprocs,memory_buffer,disk_stor)
     !==============================================================================!
     !                                   F I L E                                    !
     !==============================================================================!
-    ! Subroutine used to write the main body of the Mandelbrot output file,        !
+    ! Subroutine used to write the main body of the Mandelbrot output io_file,     !
     ! "out.mand".                                                                  !
     !------------------------------------------------------------------------------!
     ! Arguments:                                                                   !
@@ -151,7 +161,7 @@ contains
     character*10                    :: b(3)
     integer,intent(in)              :: nprocs
     real,intent(in)                 :: memory_buffer,disk_stor
-    call trace_entry("FILE")
+    call trace_entry("IO_FILE")
     call date_and_time(b(1), b(2), b(3), d_t)
     months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
@@ -159,7 +169,7 @@ contains
        open(unit=2,file="data.mand",form="UNFORMATTED")
     end if
     open(unit=stdout,file="out.mand",RECL=8192,form="FORMATTED")
-    call header()
+    call io_header()
 
     write(stdout,1000) months(d_t(2)),d_t(3),d_t(1),d_t(5),d_t(6),d_t(7),d_t(8)
 1000 format (' Calculation started:  ', A, 1x, i2.2, 1x, i4.4, ' at ',i2.2, ':', i2.2, ':', i2.2 ,".",i3.3)
@@ -193,18 +203,34 @@ contains
        write(stdout,2001) "Calculation Type","Julia"
     else if (b_for_carrying)then
        write(stdout,2001) "Calculation Type","Buddahbrot"
-    elseif (newt_for_carrying)then
-       write(stdout,2001) "Calculation Type","Newton"
     elseif (burn_for_carrying)then
        write(stdout,2001) "Calculation Type","Burning Ship"
+    elseif (do_magnet)then
+       write(stdout,2001) "Calculation Type","Magnet"
+    elseif (do_phoenix)then
+       write(stdout,2001) "Calculation Type","Phoenix"
+    elseif (do_nova)then
+       write(stdout,2001) "Calculation Type","Nova"
+    elseif (do_rational)then
+       write(stdout,2001) "Calculation Type","Rational"
+    elseif (newt_for_carrying)then
+       write(stdout,2001) "Calculation Type","Newton"
     else
        write(stdout,2001) "Calculation Type","Mandelbrot"
     endif
-
+    if (do_nova.or.newt_for_carrying)then
+       write(stdout,2003) "Relaxation Const", relaxation
+    end if
     if (b_for_carrying) write(stdout,2002) "No. Initial positions:",buddah_param
 
-    write(stdout,2003)"Exponent",e_default
-    if (j_for_carrying.or.burn_for_carrying)  write(stdout,2005) "Complex seed",julia_const
+    if(.not.do_rational)write(stdout,2003)"Exponent",e_default
+    if(do_rational)then
+       write(stdout,2003)"Exponent 1",e_default
+       write(stdout,2003)"Exponent 2",e_rational
+       write(stdout,2003)"Lambda",lambda
+    end if
+    if (j_for_carrying.or.burn_for_carrying.or.do_phoenix.or.do_nova.or.do_rational) &
+         write(stdout,2005) "Complex seed",julia_const
     if (.not.newt_for_carrying) write(stdout,2004) "Bail Out",bail_out
     write(stdout,2002) "Maximum Iterations",max_iter
     write(stdout,*)
@@ -219,7 +245,7 @@ contains
     write(stdout,2003)"Lower Y",lower_y
     write(stdout,2003)"Upper Y",upper_y
 
-    if (j_for_carrying.or.burn_for_carrying.or.do_mandelbrot)then
+    if (j_for_carrying.or.burn_for_carrying.or.do_mandelbrot.or.do_magnet.or.do_phoenix)then
 
        write(stdout,*)
        write(stdout,2006)"------------ Colouring Scheme ------------"
@@ -229,11 +255,15 @@ contains
           write(stdout,2001) "Colouring Method","Triangle"
        elseif (ave_an)then 
           write(stdout,2001) "Colouring Method","Average Angle"
-       else
+       elseif(simple_set)then
+          write(stdout,2001) "Colouring Method","Simple Set"
+       elseif(exponential)then
+          write(stdout,2001) "Colouring Method","Exponential"
+       elseif(smooth)then
           write(stdout,2001) "Colouring Method","Normal"
        end if
        if (nprocs.gt.1)then
-          if (lookfor_PARALLEL .and. lookfor_data .and.b_for_carrying)then
+          if (lookfor_PARALLEL .and. lookfor_data.and..not.b_for_carrying)then
              write(stdout,2001) "MPI Colouring","True"
           else
              write(stdout,2001) "MPI Colouring","False"
@@ -280,11 +310,14 @@ contains
     end if
 
 
-    call trace_exit("FILE")
-  end subroutine File
+    if (do_nova)newt_for_carrying=.true.
 
 
-  subroutine READ_PARAMETERS()
+    call trace_exit("IO_FILE")
+  end subroutine io_file
+  
+
+  subroutine io_read_parameters()
     !==============================================================================!
     !                        R E A D _ P A R A M E T E R S                         !
     !==============================================================================!
@@ -299,7 +332,7 @@ contains
 
     integer                      :: i,counter,j,stat=0,max_stat
     character(len=30)            :: chara,name,val,z_re_char,z_im_char,junk
-
+    character(len=5)             :: out_1,out_2
     logical                      :: change_ux=.FALSE.
     logical                      :: change_lx=.FALSE.
     logical                      :: change_uy=.FALSE.
@@ -307,10 +340,14 @@ contains
     logical                      :: change_exp=.FALSE.
     logical                      :: change_iter=.FALSE.
     logical                      :: change_julia=.FALSE.
+    logical                      :: change_magnet=.FALSE.
+    logical                      :: temp_logical
+    call trace_entry("IO_READ_PARAMETERS")
 
-    call trace_entry("READ_PARAMETERS")
 
-    
+
+
+
     inquire(file="param.mand", EXIST=file_exist)
     if (file_exist)then 
        open(unit=24,file="param.mand",status="OLD",access="stream",form="formatted")
@@ -318,7 +355,7 @@ contains
        do while (max_stat .eq. 0) 
 
           read(24,'(A)',IOSTAT=max_stat)junk
-
+          if (junk(1:1).eq."!")cycle
           do j=1,len_trim(junk)
 
              if (junk(j:j).eq.':' .or. junk(j:j).eq."=")then
@@ -327,56 +364,76 @@ contains
 
                 exit
              elseif (j.eq.len_trim(junk))then
-                call Errors("User I/O Error")                
+                call io_errors("User I/O Error"//trim(junk))                
              endif
           enddo
 
 
 
-          name=string_tolower(name)
-          val=string_tolower(val)
+          name=io_string_to_lower(name)
+          val=io_string_to_lower(val)
 
           name=adjustl(name)
           val=adjustl(val)
 
           if (adjustl(name).eq."grid_size")then
              read(val,'(i6)',iostat=stat)N
-             if (stat.ne.0)call errors("Error in I/O read from param.mand: "//trim(val))
+             if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
           elseif (name.eq."max_iter")then
              read(val,'(i12)',iostat=stat)max_iter
-             if (stat.ne.0)call errors("Error in I/O read from param.mand: "//trim(val))
+             if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
              change_iter=.TRUE.
           elseif (name.eq."exponent")then
-             call int_to_real(val)
-             read(val,'(f5.2)',iostat=stat)e_default
-             if (stat.ne.0)call errors("Error in I/O read from param.mand: "//trim(val))
-             change_exp=.true.
+             call io_split_params(val,out_1,out_2,temp_logical)
+             if (temp_logical)then
+                call io_int_to_real(out_1)
+                call io_int_to_real(out_2)
+                read(out_1,'(f5.2)',iostat=stat)e_default
+                if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(out_1))
+                read(out_2,'(f5.2)',iostat=stat)e_rational
+                if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(out_2))
+                change_exp=.true.
+             else
+                call io_int_to_real(val)
+                read(val,'(f5.2)',iostat=stat)e_default
+                if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
+                change_exp=.true.
+             end if
+          elseif (name.eq."lambda")then
+             call io_int_to_real(val)
+             read(val,'(f6.3)',iostat=stat)lambda
+
+             if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
           elseif (name.eq."buddah_const".or.name.eq."Buddah_const")then
              read(val,'(i12)',iostat=stat)buddah_param
-             if (stat.ne.0)call errors("Error in I/O read from param.mand: "//trim(val))
-          elseif (name.eq."julia_const")then
+             if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
+          elseif (name.eq."complex_seed")then
              read(val,*,iostat=stat)julia_const
-             if (stat.ne.0)call errors("Error in I/O read from param.mand: "//trim(val))
+             if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
              change_julia=.TRUE.
+          elseif (name.eq."relaxation")then
+             call io_int_to_real(val)
+             read(val,'(f15.10)',iostat=stat)relaxation
+             if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
           elseif (name.eq."x_low")then
-             call int_to_real(val)
+             call io_int_to_real(val)
              read(val,'(f15.10)',iostat=stat)lower_x
-             if (stat.ne.0)call errors("Error in I/O read from param.mand: "//trim(val))
+             if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
              change_lx=.true.
           elseif (name.eq."x_up")then
-             call int_to_real(val)
+             call io_int_to_real(val)
              read(val,'(f15.10)',iostat=stat)upper_x
-             if (stat.ne.0)call errors("Error in I/O read from param.mand: "//trim(val))
+             if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
              change_ux=.true.
           elseif (name.eq."y_low")then
-             call int_to_real(val)
+             call io_int_to_real(val)
              read(val,'(f15.10)',iostat=stat)lower_Y
-             if (stat.ne.0)call errors("Error in I/O read from param.mand: "//trim(val))
+             if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
              change_ly=.true.        
           elseif (name.eq."y_up")then
-             call int_to_real(val)
+             call io_int_to_real(val)
              read(val,'(f15.10)',iostat=stat)upper_Y
-             if (stat.ne.0)call errors("Error in I/O read from param.mand: "//trim(val))
+             if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
              change_uy=.true.       
           elseif (name.eq."debug")then
              if(val.eq."true")then
@@ -387,24 +444,33 @@ contains
           elseif (name.eq."colouring_method")then
              if (val.eq."triangle")then 
                 triangle=.true.
+                smooth=.false.
              elseif (val.eq."angle")then
                 ave_an=.true.
+                smooth=.false.
              elseif(val.eq."normal")then 
-                ave_an=.false.
+                smooth=.true.
+
+             elseif (val.eq."simple_set")then
+                simple_set=.true.
+                smooth=.false.
+             elseif (val.eq."exponential")then
+                exponential=.true.
+                smooth=.false.
              else
-                call warning(name,val,lookfor_warnings)
+                call io_warning(name,val,lookfor_warnings)
 
              end if
           elseif (name.eq."bail_out")then
              do i=1,len_trim(val)
                 if (val(1:1).eq."e")then 
                    read(val,'(E11.4)',iostat=stat)bail_out
-                   if (stat.ne.0)call errors("Error in I/O read from param.mand: "//trim(val))
+                   if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
                    exit
                 elseif(i.eq.len_trim(val))then
-                   call int_to_real(val)
+                   call io_int_to_real(val)
                    read(val,'(f15.10)',iostat=stat)bail_out
-                   if (stat.ne.0)call errors("Error in I/O read from param.mand: "//trim(val))
+                   if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
                 else
                    cycle
                 end if
@@ -416,7 +482,7 @@ contains
              elseif (val.eq."false".or.val.eq."False")then
                 lookfor_parallel=.FALSE.
              else
-                call warning(name,val,lookfor_warnings)
+                call io_warning(name,val,lookfor_warnings)
              end if
           elseif(name.eq."continuation")then
              if (val.eq."true".or.val.eq."True")then
@@ -424,7 +490,7 @@ contains
              elseif (val.eq."false".or.val.eq."False")then
                 continuation=.FALSE.
              else
-                call warning(name,val,lookfor_warnings)
+                call io_warning(name,val,lookfor_warnings)
              end if
           elseif(name.eq."write_data")then
              if(val.eq."true".or.val.eq."True")then
@@ -432,7 +498,7 @@ contains
              elseif (val.eq."false".or.val.eq."False")then
                 lookfor_data=.FALSE.
              else
-                call warning(name,val,lookfor_warnings)
+                call io_warning(name,val,lookfor_warnings)
              end if
           elseif(name.eq."write_efficiency")then
              if(val.eq."true".or.val.eq."True")then
@@ -440,28 +506,40 @@ contains
              elseif (val.eq."false".or.val.eq."False")then
                 lookfor_eff=.FALSE.
              else
-                call warning(name,val,lookfor_warnings)
+                call io_warning(name,val,lookfor_warnings)
              end if
-          elseif(name.eq."calc_type".or.name.eq."Calc_type")then
-             if(val.eq."buddahbrot".or.val.eq."Buddahbrot")then
+          elseif(name.eq."calc_type")then
+             if(val.eq."buddahbrot")then
                 b_for_carrying=.TRUE.
                 do_mandelbrot=.false.
-             elseif(val.eq."julia".or.val.eq."Julia")then
+             elseif(val.eq."julia")then
                 j_for_carrying=.TRUE.
                 do_mandelbrot=.false.
-             elseif(val.eq."newton".or.val.eq."Newton")then
+             elseif(val.eq."newton")then
                 newt_for_carrying=.TRUE.
+                do_mandelbrot=.false.
+             elseif(val.eq."magnet")then
+                do_magnet=.TRUE.
                 do_mandelbrot=.false.
              elseif(val.eq."burning_ship")then
                 burn_for_carrying=.TRUE.
                 do_mandelbrot=.false.
-             elseif(val.eq."Mandelbrot".or.val.eq."mandelbrot")then
+             elseif(val.eq."phoenix")then
+                do_phoenix=.TRUE.
+                do_mandelbrot=.false.
+             elseif(val.eq."nova")then
+                do_nova=.TRUE.
+                do_mandelbrot=.false.
+             elseif(val.eq."rational")then
+                do_rational=.TRUE.
+                do_mandelbrot=.false.
+             elseif(val.eq."mandelbrot")then
                 b_for_carrying=.FALSE.
                 j_for_carrying=.FALSE.
                 newt_for_carrying=.FALSE.
                 do_mandelbrot=.true.
              else
-                call Warning(name,val,lookfor_warnings)
+                call io_warning(name,val,lookfor_warnings)
              end if
           elseif (name(1:1).eq."#".or.name(1:1).eq."!")then
              cycle
@@ -478,7 +556,7 @@ contains
 
     !Set the Defaults
 
-    if (j_for_carrying)then
+    if (j_for_carrying.or.do_phoenix.or.do_rational)then
        if (.not.change_lx)lower_x=-2.0
        if (.not.change_ux)upper_x=2.0
        if (.not.change_ly)lower_y=-2.0
@@ -495,23 +573,32 @@ contains
        lower_Y=-1.25
        upper_Y=1.25
        if (.not.change_iter)  max_iter=1000
-    elseif (newt_for_carrying)then 
+    elseif (newt_for_carrying.or.do_nova)then 
        if (.not.change_lx)lower_x=-2.0
        if (.not.change_ux)upper_x=2.0
        if (.not.change_ly)lower_y=-2.0
        if (.not.change_uy)upper_y=2.0
        if (.not.change_exp)e_default=3.0
+    elseif (do_magnet)then
+       if (.not.change_lx)lower_x=-1.0
+       if (.not.change_ux)upper_x=3.5
+       if (.not.change_ly)lower_y=-2.5
+       if (.not.change_uy)upper_y=2.5
     end if
 
-    call trace_exit("READ_PARAMETERS")
-  end subroutine READ_PARAMETERS
+    if(do_nova)newt_for_carrying=.true.
+    if (e_default.lt.3.and.newt_for_carrying)call io_errors("Error in I/O, Exponent must not be less then 3.0 for Newton-Raphson calculation")
+
+
+    call trace_exit("IO_READ_PARAMETERS")
+  end subroutine IO_READ_PARAMETERS
 
 
 
 
 
 
-  subroutine warning(name,val,lookfor_warnings)
+  subroutine io_warning(name,val,lookfor_warnings)
     !==============================================================================!
     !                                W A R N I N G                                 !
     !==============================================================================!
@@ -528,15 +615,15 @@ contains
 
     character(*)::name,val
     logical,intent(inout) :: lookfor_warnings
-    call trace_entry("WARNING")
+    call trace_entry("IO_WARNING")
     lookfor_warnings=.TRUE.
     write(*,*)"Warning: Unknown argument '",trim(val),"' for parameter: ",trim(name)
 49  format(1x,A,A,A,1x,A)
     write(*,*) "Reverting to default"
-    call trace_exit("WARNING")
-  end subroutine warning
+    call trace_exit("IO_WARNING")
+  end subroutine io_warning
 
-  subroutine params()
+  subroutine io_params()
     !==============================================================================!
     !                                 P A R A M S                                  !
     !==============================================================================!
@@ -559,7 +646,7 @@ contains
 
 
     write(*,73) adjustl("CALC_TYPE"),":","Toggle the desired set"
-    write(*,78) "Allowed",":","Mandelbrot, Julia, Buddahbrot, Newton, Burning_ship"
+    write(*,78) "Allowed",":","Mandelbrot, Julia, Buddahbrot, Newton, Burning_ship, Phoenix, Nova, Magnet, Rational"
     write(*,74) "Default",":","Mandelbrot"
     write(*,*)
 
@@ -573,17 +660,23 @@ contains
     write(*,75) "Default",":", Max_iter
     write(*,*) 
 
-    write(*,73) adjustl("EXPONENT"),":","Specify exponent for calculation"
+    write(*,73) adjustl("EXPONENT"),":","Specify exponent for calculation, a second exponent can be provided for rational maps, comma separated"
     write(*,78) "Allowed",":","any"
     write(*,76) "Default",":", e_default
+    write(*,76) "Default second",":",e_rational
     write(*,*)
 
+    write(*,73) adjustl("LAMBDA"),":","Specify the weighting for the rational map second exponent"
+    write(*,78) "Allowed",":","any real"
+    write(*,76) "Default",":",lambda
+    write(*,*)
+    
     write(*,73) adjustl("BUDDAH_CONST"),":","Specify No. initial posotions in Buddahbrot calculation"
     write(*,78) "Allowed",":","any int > 0"
     write(*,75) "Default",":",buddah_param
     write(*,*)
 
-    write(*,73) adjustl("JULIA_CONST"),":","Specify Julia set constant"
+    write(*,73) adjustl("COMPLEX_SEED"),":","Specify complex seed"
     write(*,78) "Allowed",":","any complex"
     write(*,74) "Default",":","(0.285,0.01)"
     write(*,*)
@@ -629,14 +722,19 @@ contains
     write(*,*)
 
     write(*,73) adjustl("COLOURING_METHOD"),":","Change colouring method for fractal sets"
-    write(*,78) "Allowed",":","NORMAL,TRIANGLE,ANGLE"
+    write(*,78) "Allowed",":","NORMAL,TRIANGLE,ANGLE,SIMPLE_SET"
     write(*,74) "Default",":","NORMAL"
+    write(*,*)
+    
+    write(*,73) adjustl("RELAXATION"),":","Specify the relaxation parameter for the Newton fractal"
+    write(*,78) "Allowed",":","any_real>0"
+    write(*,74) "Default",":","1.0"
 
 
-  end subroutine params
+  end subroutine io_params
 
 
-  function string_tolower( string ) result (new) 
+  function io_string_to_lower( string ) result (new) 
     !==============================================================================!
     !                         S T R I N G _ T O L O W E R                          !
     !==============================================================================!
@@ -658,7 +756,7 @@ contains
     integer                    :: i 
     integer                    :: k 
     integer::length
-    call trace_entry("STRING_TOLOWER")
+    call trace_entry("IO_STRING_TO_LOWER")
     length = len(string) 
     new    = string 
     do i = 1,len(string) 
@@ -668,11 +766,11 @@ contains
           new(i:i) = achar(k) 
        endif
     enddo
-    call trace_exit("STRING_TOLOWER")
-  end function string_tolower
+    call trace_exit("IO_STRING_TO_LOWER")
+  end function io_string_to_lower
 
 
-  subroutine print_dry(on_root)
+  subroutine io_print_dry(on_root)
     !==============================================================================!
     !                              P R I N T _ D R Y                               !
     !==============================================================================!
@@ -685,18 +783,22 @@ contains
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
     logical :: on_root
+    call trace_entry("IO_PRINT_DRY")
     if (on_root)then
        write(stdout,*) "                        ***************************************"
        write(stdout,*) "                        *     Dryrun Complete: Finishing      *"
        write(stdout,*) "                        ***************************************"
     endif
     call COMMS_FINALISE()
+    call trace_exit("IO_PRINT_DRY")
+    call trace_finalise(rank,debug)
     stop
-  end subroutine print_dry
+    
+  end subroutine io_print_dry
 
 
 
-  subroutine print_help()
+  subroutine io_print_help()
     !==============================================================================!
     !                             P R I N T _ H E L P                              !
     !==============================================================================!
@@ -714,9 +816,9 @@ contains
     write(*,*) '   -h, --help        Print usage information and exit'
     write(*,*) '   -l, --list        Print list of allowed parameters'
     write(*,*) '   -c, --clear       Remove previous output files'
-  end subroutine print_help
+  end subroutine io_print_help
 
-  subroutine errors(message)
+  subroutine io_errors(message)
     !==============================================================================!
     !                                 E R R O R S                                  !
     !==============================================================================!
@@ -731,17 +833,17 @@ contains
     implicit none
     character(*)::message
 
-    
+    write(*,*) "Called I/O Error"
     open(20,file="err.mand",status="unknown",access="append")
     write(20,*) "Error: ",trim(message)
     close(20)
     
     stop
 
-  end subroutine errors
+  end subroutine io_errors
 
 
-  subroutine int_to_real(int_real)
+  subroutine io_int_to_real(int_real)
     !==============================================================================!
     !                            I N T _ T O _ R E A L                             !
     !==============================================================================!
@@ -756,14 +858,39 @@ contains
     character(*),intent(inout) :: int_real
     integer                    :: j
     logical                    :: decimal=.false.
-    call trace_entry("INT_TO_REAL")
+    call trace_entry("IO_INT_TO_REAL")
+
     do j=0,len_trim(int_real)
        if (int_real(j:j).eq.".")decimal=.true.
     end do
 
     if (.not.decimal)int_real=trim(int_real)//"."
     decimal=.false.
-    call trace_exit("INT_TO_REAL")
-  end subroutine int_to_real
+    call trace_exit("IO_INT_TO_REAL")
+  end subroutine io_int_to_real
+
+
+  subroutine io_split_params(in_char,out_char1,out_char2,found)
+    implicit none
+    character(*),intent(in)       :: in_char
+    character(5),intent(inout)    :: out_char1,out_char2
+    logical,     intent(inout)    :: found
+
+    integer                       :: i
+    call trace_entry("IO_SPLIT_PARAMS")
+    do i=1,len(in_char)
+       if (in_char(i:i).eq.",")then
+          out_char1=in_char(1:i-1)
+          out_char2=in_char(i+1:len(in_char))
+          found=.true.
+          exit
+       end if
+    end do
+
+    call trace_exit("IO_SPLIT_PARAMS")
+    
+  end subroutine io_split_params
+    
+    
 end module IO
 

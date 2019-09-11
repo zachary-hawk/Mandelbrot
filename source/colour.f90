@@ -9,7 +9,7 @@ module colours
 contains 
 
 
-  subroutine triangle_ineq(z,c,z_old,z_cum,int)
+  subroutine colour_triangle_ineq(z,c,z_old,z_cum,int)
     !==============================================================================!
     !                          T R I A N G L E _ I N E Q                           !
     !==============================================================================!
@@ -34,23 +34,27 @@ contains
 !    call trace_entry("TRIANGLE_INEQ")
 
 
+
     max=abs(abs(z_old**e_default)+abs(c))
     min=abs(abs(z_old**e_default)-abs(c))
 
-    if (max-min.eq.0)then
+
+    if (max-min.lt.1.0e-3)then
        z_cum=z_cum
     else
 
        z_cum=(z_cum+(abs(z)-min)/(max-min))
 
     end if
+
+    if (int.gt.max_iter-1)z_cum=0
 !    call trace_exit("TRIANGLE_INEQ")
-  end subroutine triangle_ineq
+  end subroutine colour_triangle_ineq
 
 
 
 
-  subroutine ave_angle(z,theta)
+  subroutine colour_ave_angle(z,theta)
     !==============================================================================!
     !                              A V E _ A N G L E                               !
     !==============================================================================!
@@ -76,13 +80,13 @@ contains
        theta=theta
     end if
 !    call trace_exit("AVE_ANGLE")
-  end subroutine ave_angle
+  end subroutine colour_ave_angle
 
 
 
   
 
-  subroutine smooth_iter(k,z,colour)
+  subroutine colour_smooth_iter(k,z,colour)
     implicit none
     complex(complex_kind),intent(in) :: z
     integer,intent(in)               :: k
@@ -91,9 +95,29 @@ contains
     colour=k-((log(abs(z))/log(bail_out))/log(e_default))
     !    if (colour.gt.100)colour=100
 !    call trace_exit("SMOOTH_ITER")
-  end subroutine smooth_iter
+  end subroutine colour_smooth_iter
 
+  subroutine colour_set(k,colour)
+    implicit none
 
+    integer,intent(in)               :: k
+    real,intent(inout)               :: colour
+
+    if (k.eq.max_iter+1)then
+       colour=1
+    else
+       colour=0
+    end if
+
+  end subroutine colour_set
+
+  subroutine colour_exponential(z,colour_ref)
+    implicit none
+    complex(complex_kind),intent(in)     :: z
+    real,intent(inout)                   :: colour_ref
+
+    colour_ref=colour_ref+exp(-abs(z))
+  end subroutine colour_exponential
 
 
 end module colours

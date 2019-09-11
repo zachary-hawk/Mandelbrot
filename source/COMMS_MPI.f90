@@ -14,6 +14,7 @@ module COMMS
   integer :: ierr
   integer,parameter :: max_version_length=MPI_MAX_LIBRARY_VERSION_STRING
   integer, dimension(MPI_STATUS_SIZE):: status1
+  integer :: rank,nprocs
   character(3) :: comms_arch="MPI"
 
 contains
@@ -136,6 +137,8 @@ contains
     integer :: ierr
     call trace_entry("COMMS_INIT")
     call MPI_INIT(ierr)
+    call COMMS_RANK(rank)
+    call COMMS_SIZE(nprocs)
     call trace_exit("COMMS_INIT")
 
   end subroutine COMMS_INIT
