@@ -15,8 +15,8 @@ ifeq ($(strip $(VAR)),)
 VAR="'Unknown'"
 endif
 #FC=mpif90
-FCFLAGSCPP= -cpp -O3 --traceback  -funroll-loops -D arch=$(VAR) -D direc=$(DIR) -D cpu=$(CPU) -xHost -p #-ipo  -g
-FCFLAGS=  -O3  -funroll-loops -xHost -p -traceback
+FCFLAGSCPP= -cpp -O3 -funroll-loops -D arch=$(VAR) -D direc=$(DIR) -D cpu=$(CPU) -xHost -p 
+FCFLAGS=  -O3  -funroll-loops -xHost -p
 BUILD_DIR ?= ./../build
 
 
@@ -58,29 +58,30 @@ endif
 
 
 ifeq ($(COMMS_ARCH),serial)
-
-mandelbrot.serial: Mandelbrot.o fractal.o colour.o IO.o COMMS_SERIAL.o
-	 $(SERIAL_FC) -o mandelbrot.serial  Mandelbrot.o fractal.o colour.o IO.o COMMS_SERIAL.o 
+mandelbrot.serial: Mandelbrot.o fractal.o colour.o IO.o COMMS_SERIAL.o trace.o
+	 $(SERIAL_FC) -o mandelbrot.serial  Mandelbrot.o fractal.o colour.o IO.o COMMS_SERIAL.o trace.o  $(FCFLAGS)
 # Here are the compile steps
 
-Mandelbrot.o:Mandelbrot.f90 fractal.o IO.o COMMS_SERIAL.o
-	 $(SERIAL_FC) -c  Mandelbrot.f90 fractal.o IO.o COMMS_SERIAL.o $(FCFLAGS)
+Mandelbrot.o:Mandelbrot.f90 fractal.o IO.o COMMS_SERIAL.o trace.o
+	 $(SERIAL_FC) -c  Mandelbrot.f90 $(FCFLAGS)
 
-fractal.o:./fractal.f90 colour.o IO.o
+fractal.o:./fractal.f90 colour.o IO.o trace.o
 	 $(SERIAL_FC) -c  ./fractal.f90 $(FCFLAGSCPP)
 
-colour.o:./colour.f90 IO.o
+colour.o:./colour.f90 IO.o trace.o
 	 $(SERIAL_FC) -c  ./colour.f90 $(FCFLAGS)
 
 
-IO.o:./IO.f90 COMMS_SERIAL.o
+IO.o:./IO.f90 COMMS_SERIAL.o trace.o
 	 $(SERIAL_FC) -c  ./IO.f90 $(FCFLAGSCPP)
 
-COMMS_SERIAL.o:./COMMS_SERIAL.f90
+COMMS_SERIAL.o:./COMMS_SERIAL.f90 trace.o
 	 $(SERIAL_FC) -c  ./COMMS_SERIAL.f90 $(FCFLAGS)
 
-
+trace.o:./trace.f90
+	$(SERIAL_FC) -c ./trace.f90 $(FCFLAGS)
 
 
 
 endif
+
