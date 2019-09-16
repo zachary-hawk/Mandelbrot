@@ -30,16 +30,17 @@ program Mandelbrot
   integer                         :: data_size
   real                            :: tolerance,frac,memory_size=0,memory_buffer=0,theta
   real                            :: disk_stor=0,k,colour_ref,colour_ref_buff,comms_time_buff
-
   real                            :: cos_thing
+
   call trace_init()
-
-
-
 
   !SET UP MPI ENVIRONMENT
   CALL COMMS_INIT()
 
+
+  
+
+  
 
   start=COMMS_WTIME()
   if(rank.eq.0)then
@@ -94,7 +95,7 @@ program Mandelbrot
 
   call io_read_parameters()
 
-  
+  call io_zoom(zoom)
 
 
   !Ensure commensurate with cores
@@ -130,6 +131,8 @@ program Mandelbrot
      if (on_root) call io_errors(" Max No. iterations must be positive integer")
   else if (triangle.and.abs(julia_const).eq.0)then
      if (on_root) call io_errors("TIA unavailible when COMPLEX_SEED=0")
+  else if (e_default.lt.2.0)then
+     if (on_root) call io_errors("Exponential must be greater than 2.0")
   end if
 
 

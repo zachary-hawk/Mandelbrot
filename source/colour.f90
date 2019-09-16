@@ -31,7 +31,7 @@ contains
     integer,intent(in)              :: int
     real,intent(inout)              :: z_cum
     real(kind=real128)              :: max,min
-!    call trace_entry("TRIANGLE_INEQ")
+!   call trace_entry("TRIANGLE_INEQ")
 
 
 
@@ -82,8 +82,6 @@ contains
 !    call trace_exit("AVE_ANGLE")
   end subroutine colour_ave_angle
 
-
-
   
 
   subroutine colour_smooth_iter(k,z,colour)
@@ -119,5 +117,33 @@ contains
     colour_ref=colour_ref+exp(-abs(z))
   end subroutine colour_exponential
 
+  subroutine colour_light(z,k_real,i,dir)
+    implicit none
+    complex(complex_kind),intent(in)     :: z
+    real,intent(inout)                   :: k_real
+    integer,intent(in)                   :: i
 
+    complex(complex_kind)                :: v,u
+    complex(complex_kind)                :: dc=(1,0)
+    complex(complex_kind),intent(inout)  :: dir
+    real                                 :: h=1.5
+    k_real=0
+    v=exp(cmplx(0,1)*light_angle*2*pi/360)
+
+    if (i.eq.0)dir=dc
+    dir=dir*e_default*z**(e_default-1)+dc
+
+    if (abs(z).gt.bail_out)then
+
+       u = z/dir
+       u = u/abs(u)
+
+       k_real = real(u)*real(v) + aimag(u)*aimag(v) + h
+       k_real = k_real/(1+h) 
+
+       if (k_real.lt.0) k_real=0
+    end if
+  end subroutine colour_light
+
+  
 end module colours

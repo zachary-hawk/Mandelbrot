@@ -35,10 +35,11 @@ contains
     !==============================================================================!
     implicit none
     integer,intent(in)::Max_iter 
-    complex(complex_kind)::z,c,z_old=(0,0)
+    complex(complex_kind)::z,c,z_old=(0,0),dir
     integer :: k
     real :: e,z_cum=0,k_real
     k_real=0
+    dir=(0,0)
     if (e.EQ.int(e))then 
        do k=1,Max_iter
           z_old=z
@@ -48,6 +49,8 @@ contains
              call colour_triangle_ineq(z,c,z_old,z_cum,k)
           elseif (ave_an)then
              call colour_ave_angle(z,k_real)
+          else if(light)then
+             call colour_light(z,k_real,k,dir)
           else if (exponential)then
              call colour_exponential(z,k_real)
           end if

@@ -19,12 +19,15 @@ module IO
   real             :: e_rational=-2
   real             :: lambda=1
   real             :: bail_out=1.e5
+  real             :: light_angle=45
+  real,parameter   :: pi=3.141592654             
   integer          :: buddah_param=10000
   integer          :: stdout
-  real(real32)     :: lower_X=-2.0
-  real(real32)     :: upper_X=0.5
-  real(real32)     :: lower_Y=-1.25
-  real(real32)     :: upper_Y=1.25
+  real(real64)     :: lower_X=-2.0
+  real(real64)     :: upper_X=0.5
+  real(real64)     :: lower_Y=-1.25
+  real(real64)     :: upper_Y=1.25
+  real             :: zoom_factor=1
   logical          :: lookfor_parallel=.FALSE.
   logical          :: lookfor_data=.TRUE.
   logical          :: lookfor_eff=.FALSE.
@@ -41,18 +44,20 @@ module IO
   logical          :: simple_set=.false.
   logical          :: ave_an=.false.
   logical          :: smooth=.true.
+  logical          :: light=.false.
   logical          :: do_mandelbrot=.true.
   logical          :: do_magnet=.false.
   logical          :: do_phoenix=.false.
   logical          :: do_nova=.false.
   logical          :: do_rational
   logical          :: debug=.false.
+  logical          :: zoom=.false.
   complex          :: julia_const=(0.285,0.01)
   character(81)    :: parser_version="Mandelbrot v.3.0, Z.Hawkhead" 
   character(100)   :: info="Parallel code for calculating the Mandelbrot Set"
   character(100)   :: DATE,TIME,compiler,arch_string,version,cpuinfo
   integer,parameter:: complex_kind=real32
-
+  complex(complex_kind):: centre
 
   !  public :: triangle,ave_ang
 
@@ -130,9 +135,9 @@ contains
     write(stdout,*) "| ",parser_version,"|"
     write(stdout,*) "+==================================================================================+"
     write(stdout,*)
-    write(stdout,*) "Compio_filed with ",compiler," ",Trim(version), " on ", __DATE__, " at ",__TIME__
-    write(stdout,*) "Compio_filed for CPU: ",trim(cpuinfo)
-    write(stdout,*) "Compio_filed for system: ",trim(arch_string)
+    write(stdout,*) "Compiled with ",compiler," ",Trim(version), " on ", __DATE__, " at ",__TIME__
+    write(stdout,*) "Compiled for CPU: ",trim(cpuinfo)
+    write(stdout,*) "Compiled for system: ",trim(arch_string)
     write(stdout,"(1x,A,i3)") "Complex precision: ",8*complex_kind
     write(stdout,*) "Communications architechture: ",trim(comms_arch)
     if (comms_arch.eq."MPI")then
@@ -237,9 +242,11 @@ contains
     write(stdout,2006)"------------ Image Parameters ------------"
     write(stdout,*)	
 
-
-
     write(stdout,2002)"No. Grid points",N
+    if (zoom)then
+       write(stdout,2003)"Zoom Factor",zoom_factor
+       write(stdout,2005)"Zoom Centre",centre
+    end if
     write(stdout,2003)"Lower X",lower_x
     write(stdout,2003)"Upper X",upper_x
     write(stdout,2003)"Lower Y",lower_y
@@ -261,6 +268,8 @@ contains
           write(stdout,2001) "Colouring Method","Exponential"
        elseif(smooth)then
           write(stdout,2001) "Colouring Method","Normal"
+       elseif(light)then
+          write(stdout,2001) "Colouring Method","Light"
        end if
        if (nprocs.gt.1)then
           if (lookfor_PARALLEL .and. lookfor_data.and..not.b_for_carrying)then
@@ -337,6 +346,7 @@ contains
     logical                      :: change_lx=.FALSE.
     logical                      :: change_uy=.FALSE.
     logical                      :: change_ly=.FALSE.
+    logical                      :: change_centre=.FALSE.
     logical                      :: change_exp=.FALSE.
     logical                      :: change_iter=.FALSE.
     logical                      :: change_julia=.FALSE.
@@ -375,12 +385,13 @@ contains
 
           name=adjustl(name)
           val=adjustl(val)
-
           if (adjustl(name).eq."grid_size")then
-             read(val,'(i6)',iostat=stat)N
+             call io_scientific_corr(val)
+             read(val,*,iostat=stat)N
              if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
           elseif (name.eq."max_iter")then
-             read(val,'(i12)',iostat=stat)max_iter
+             call io_scientific_corr(val)
+             read(val,*,iostat=stat)max_iter
              if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
              change_iter=.TRUE.
           elseif (name.eq."exponent")then
@@ -388,24 +399,25 @@ contains
              if (temp_logical)then
                 call io_int_to_real(out_1)
                 call io_int_to_real(out_2)
-                read(out_1,'(f5.2)',iostat=stat)e_default
+                read(out_1,*,iostat=stat)e_default
                 if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(out_1))
-                read(out_2,'(f5.2)',iostat=stat)e_rational
+                read(out_2,*,iostat=stat)e_rational
                 if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(out_2))
                 change_exp=.true.
              else
                 call io_int_to_real(val)
-                read(val,'(f5.2)',iostat=stat)e_default
+                read(val,*,iostat=stat)e_default
                 if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
                 change_exp=.true.
              end if
           elseif (name.eq."lambda")then
              call io_int_to_real(val)
-             read(val,'(f6.3)',iostat=stat)lambda
+             call io_scientific_corr(val)
+             read(val,*,iostat=stat)lambda
 
              if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
           elseif (name.eq."buddah_const".or.name.eq."Buddah_const")then
-             read(val,'(i12)',iostat=stat)buddah_param
+             read(val,*,iostat=stat)buddah_param
              if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
           elseif (name.eq."complex_seed")then
              read(val,*,iostat=stat)julia_const
@@ -413,26 +425,29 @@ contains
              change_julia=.TRUE.
           elseif (name.eq."relaxation")then
              call io_int_to_real(val)
-             read(val,'(f15.10)',iostat=stat)relaxation
+             read(val,*,iostat=stat)relaxation
              if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
           elseif (name.eq."x_low")then
              call io_int_to_real(val)
-             read(val,'(f15.10)',iostat=stat)lower_x
+             read(val,*,iostat=stat)lower_x
              if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
              change_lx=.true.
           elseif (name.eq."x_up")then
              call io_int_to_real(val)
-             read(val,'(f15.10)',iostat=stat)upper_x
+             call io_scientific_corr(val)
+             read(val,*,iostat=stat)upper_x
              if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
              change_ux=.true.
           elseif (name.eq."y_low")then
              call io_int_to_real(val)
-             read(val,'(f15.10)',iostat=stat)lower_Y
+             call io_scientific_corr(val)
+             read(val,*,iostat=stat)lower_Y
              if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
              change_ly=.true.        
           elseif (name.eq."y_up")then
              call io_int_to_real(val)
-             read(val,'(f15.10)',iostat=stat)upper_Y
+             call io_scientific_corr(val)
+             read(val,*,iostat=stat)upper_Y
              if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
              change_uy=.true.       
           elseif (name.eq."debug")then
@@ -442,7 +457,7 @@ contains
                 debug=.false.
              end if
           elseif (name.eq."colouring_method")then
-             if (val.eq."triangle")then 
+             if (val.eq."triangle".or.val.eq."tia")then 
                 triangle=.true.
                 smooth=.false.
              elseif (val.eq."angle")then
@@ -450,32 +465,32 @@ contains
                 smooth=.false.
              elseif(val.eq."normal")then 
                 smooth=.true.
-
              elseif (val.eq."simple_set")then
                 simple_set=.true.
                 smooth=.false.
              elseif (val.eq."exponential")then
                 exponential=.true.
                 smooth=.false.
+             elseif (val.eq."light")then
+                light=.true.
+                smooth=.false.
              else
                 call io_warning(name,val,lookfor_warnings)
-
              end if
+          elseif (name.eq."zoom_factor")then
+             call io_int_to_real(val)
+             call io_scientific_corr(val)
+             read(val,*,iostat=stat) zoom_factor
+             if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
+             zoom=.true.
+          elseif (name.eq."zoom_centre")then
+             read(val,*,iostat=stat)centre
+             if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
           elseif (name.eq."bail_out")then
-             do i=1,len_trim(val)
-                if (val(1:1).eq."e")then 
-                   read(val,'(E11.4)',iostat=stat)bail_out
-                   if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
-                   exit
-                elseif(i.eq.len_trim(val))then
-                   call io_int_to_real(val)
-                   read(val,'(f15.10)',iostat=stat)bail_out
-                   if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
-                else
-                   cycle
-                end if
-             end do
-
+             call io_int_to_real(val)
+             call io_scientific_corr(val)
+             read(val,*,iostat=stat)BAIL_OUT
+             if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
           elseif(name.eq."plot_parallel")then
              if (val.eq."true".or.val.eq."True")then
                 lookfor_parallel=.TRUE.
@@ -587,10 +602,15 @@ contains
     end if
 
     if(do_nova)newt_for_carrying=.true.
-    if (e_default.lt.3.and.newt_for_carrying)call io_errors("Error in I/O, Exponent must not be less then 3.0 for Newton-Raphson calculation")
+    if (e_default.lt.3.and.newt_for_carrying)&
+         call io_errors("Error in I/O, Exponent must not be less then 3.0 for Newton-Raphson calculation")
 
-
+    if (change_lx.or.change_ly.or.change_ux.or.change_uy.and.zoom)&
+         call io_errors("Error in I/O, Cannot change extent in a zoom calculation")
     call trace_exit("IO_READ_PARAMETERS")
+
+    if (zoom.and.debug) max_iter=max_iter+zoom_factor
+    if (zoom_factor.eq.0) call io_errors("Error in I/O, zoom_factor must be non-zero")
   end subroutine IO_READ_PARAMETERS
 
 
@@ -890,7 +910,59 @@ contains
     call trace_exit("IO_SPLIT_PARAMS")
     
   end subroutine io_split_params
+
+
+  subroutine io_zoom(zoom_check)
+    implicit none
+    logical            :: zoom_check
+    real(complex_kind) :: width,height
+    call trace_entry("IO_ZOOM")
+    width=upper_x-lower_x
+    height=upper_y-lower_y
+
+    if (zoom_check) then
+       width=width/zoom_factor
+       height=height/zoom_factor
+       lower_x=real(centre,complex_kind)-width/2
+       upper_x=real(centre,complex_kind)+width/2
+       lower_y=aimag(centre)-height/2
+       upper_y=aimag(centre)+height/2
+    end if
+
+    call trace_exit("IO_ZOOM")
+  end subroutine io_zoom
+
+
+  subroutine io_scientific_corr(char)
+    implicit none
+    character(*),intent(inout)    :: char
+
+    logical                       :: found_e
+    integer                       :: i
+    character(len=20)             :: temp,temp2
     
-    
+    call trace_entry("IO_SCIENTIFIC_CORR")
+
+    do i=1,len_trim(char)
+       if (char(i:i).eq."e".or.char(i:i).eq."E")then
+          found_e=.true.
+          exit
+       end if
+    end do
+
+    if (found_e)then
+       temp=char(1:i-1)
+       call io_int_to_real(temp)
+
+       temp2=trim(temp)//trim(char(i:len_trim(char)))
+    end if
+    char=temp2
+    if (char(len_trim(char):len_trim(char)).eq.".")then
+       char=char(1:len_trim(char)-1)
+    endif
+    call trace_exit("IO_SCIENTIFIC_CORR")
+  end subroutine io_scientific_corr
+
+  
 end module IO
 
