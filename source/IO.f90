@@ -390,7 +390,7 @@ contains
              read(val,*,iostat=stat)N
              if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
           elseif (name.eq."max_iter")then
-             call io_scientific_corr(val)
+        !     call io_scientific_corr(val)
              read(val,*,iostat=stat)max_iter
              if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
              change_iter=.TRUE.
@@ -412,7 +412,7 @@ contains
              end if
           elseif (name.eq."lambda")then
              call io_int_to_real(val)
-             call io_scientific_corr(val)
+       !      call io_scientific_corr(val)
              read(val,*,iostat=stat)lambda
 
              if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
@@ -434,19 +434,19 @@ contains
              change_lx=.true.
           elseif (name.eq."x_up")then
              call io_int_to_real(val)
-             call io_scientific_corr(val)
+      !       call io_scientific_corr(val)
              read(val,*,iostat=stat)upper_x
              if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
              change_ux=.true.
           elseif (name.eq."y_low")then
              call io_int_to_real(val)
-             call io_scientific_corr(val)
+      !       call io_scientific_corr(val)
              read(val,*,iostat=stat)lower_Y
              if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
              change_ly=.true.        
           elseif (name.eq."y_up")then
              call io_int_to_real(val)
-             call io_scientific_corr(val)
+      !       call io_scientific_corr(val)
              read(val,*,iostat=stat)upper_Y
              if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
              change_uy=.true.       
