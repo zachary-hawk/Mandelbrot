@@ -178,8 +178,9 @@ contains
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
     integer,intent(inout) :: rank
+    call trace_entry("COMMS_RANK")
     call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierr)
-
+    call trace_exit("COMMS_RANK")
   end subroutine COMMS_RANK
 
   subroutine COMMS_SIZE(nprocs)
@@ -883,8 +884,9 @@ contains
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
     double precision :: time
+    call trace_entry("COMMS_WTIME")
     time = MPI_WTIME()
-
+    call trace_exit("COMMS_WTIME")
   end function COMMS_WTIME
 
 end module COMMS

@@ -57,7 +57,7 @@ module IO
   character(100)   :: info="Parallel code for calculating the Mandelbrot Set"
   character(100)   :: DATE,TIME,compiler,arch_string,version,cpuinfo
   integer,parameter:: complex_kind=real32
-  complex(complex_kind):: centre
+  complex(complex_kind):: centre=(0,0)
 
   !  public :: triangle,ave_ang
 
@@ -486,6 +486,7 @@ contains
           elseif (name.eq."zoom_centre")then
              read(val,*,iostat=stat)centre
              if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
+             zoom=.true.
           elseif (name.eq."bail_out")then
              call io_int_to_real(val)
              call io_scientific_corr(val)
@@ -605,10 +606,12 @@ contains
     if (e_default.lt.3.and.newt_for_carrying)&
          call io_errors("Error in I/O, Exponent must not be less then 3.0 for Newton-Raphson calculation")
 
-    if (change_lx.or.change_ly.or.change_ux.or.change_uy.and.zoom)&
+    if (change_lx.or.change_ly.or.change_ux.or.change_uy)then
+       if (zoom)&
          call io_errors("Error in I/O, Cannot change extent in a zoom calculation")
+    endif
     call trace_exit("IO_READ_PARAMETERS")
-
+    
     if (zoom.and.debug) max_iter=max_iter+zoom_factor
     if (zoom_factor.eq.0) call io_errors("Error in I/O, zoom_factor must be non-zero")
   end subroutine IO_READ_PARAMETERS
@@ -680,7 +683,8 @@ contains
     write(*,75) "Default",":", Max_iter
     write(*,*) 
 
-    write(*,73) adjustl("EXPONENT"),":","Specify exponent for calculation, a second exponent can be provided for rational maps, comma separated"
+    write(*,73) adjustl("EXPONENT"),":",&
+         &"Specify exponent for calculation, a second exponent can be provided for rational maps, comma separated"
     write(*,78) "Allowed",":","any"
     write(*,76) "Default",":", e_default
     write(*,76) "Default second",":",e_rational
@@ -747,9 +751,18 @@ contains
     write(*,*)
     
     write(*,73) adjustl("RELAXATION"),":","Specify the relaxation parameter for the Newton fractal"
-    write(*,78) "Allowed",":","any_real>0"
+    write(*,78) "Allowed",":","any real>0"
     write(*,74) "Default",":","1.0"
+    write(*,*)
 
+    write(*,73) adjustl("ZOOM_FACTOR"),":","Magnification for a zoom calculation"
+    write(*,78) "Allowed",":","any real>0"
+    write(*,74) "Default",":","1.0"
+    write(*,*)
+
+    write(*,73) adjustl("ZOOM_CENTRE"),":","Centre of zoom calculation"
+    write(*,78) "Allowed",":","any complex"
+    write(*,74) "Default",":","(0,0)"
 
   end subroutine io_params
 
