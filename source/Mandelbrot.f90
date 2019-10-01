@@ -38,9 +38,9 @@ program Mandelbrot
   CALL COMMS_INIT()
 
 
-  
 
-  
+
+
 
   start=COMMS_WTIME()
   if(rank.eq.0)then
@@ -288,7 +288,7 @@ program Mandelbrot
 
         do j=1,N
 
-           
+
 
            c = cmplx(lower_X+i*dx,lower_Y+j*dy)
 

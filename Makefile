@@ -53,9 +53,10 @@ subsystem:
 
 
 clean:
-	rm -f $(SOURCE)/*.o $(objects) $(SOURCE)/mandelbrot.* $(BUILD_DIR)/mandelbrot.* $(SOURCE)/*.mod
+	rm -f $(SOURCE)/*.o $(objects) $(SOURCE)/mandelbrot.*  $(SOURCE)/*.mod
 
-
+clean_all:
+	rm -f $(BUILD_DIR)/mandelbrot.*
 endif
 
 

@@ -1,3 +1,6 @@
+!---- File documented by Fortran Documenter, Z.Hawkhead
+!---- File documented by Fortran Documenter, Z.Hawkhead
+!---- File documented by Fortran Documenter, Z.Hawkhead
 !----file documented by Fortran Documenter, Z.Hawkhead
 !=============================================================================!
 !                                 T R A C E                                   !
@@ -159,8 +162,8 @@ contains
     integer,intent(inout)            :: rank
     ! TRIM DOWN THE ARRAYS
 
-!    print*,entry_array
-!    print*,exit_array
+    print*,entry_array
+    print*,exit_array
 
 
     allocate(temp_real_array(1:size(entry_time_array)-1))
@@ -414,6 +417,28 @@ contains
 
 
 
+  subroutine trace_parents()
+!==============================================================================!
+!                          T R A C E _ P A R E N T S                           !
+!==============================================================================!
+! Subroutine for identifying the parents of a different subroutine currently   !
+! being traced. Puts the subroutines in order and counts the number of         !
+! parents.                                                                     !
+!------------------------------------------------------------------------------!
+! Arguments:                                                                   !
+!           None                                                               !
+!------------------------------------------------------------------------------!
+! Author:   Z. Hawkhead  01/10/2019                                            !
+!==============================================================================!
+    implicit none
 
+
+!    there is something here 
+    
+
+    
+
+  end subroutine trace_parents
+    
 
 end module trace

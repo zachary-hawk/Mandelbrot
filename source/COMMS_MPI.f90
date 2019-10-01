@@ -884,9 +884,9 @@ contains
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
     double precision :: time
-    call trace_entry("COMMS_WTIME")
+!    call trace_entry("COMMS_WTIME")
     time = MPI_WTIME()
-    call trace_exit("COMMS_WTIME")
+!    call trace_exit("COMMS_WTIME")
   end function COMMS_WTIME
 
 end module COMMS
