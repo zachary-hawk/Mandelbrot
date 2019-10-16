@@ -6,7 +6,7 @@ Z.Hawkhead
 MANDELBROT
 ----------
 
-Parallel code for producing Mandelbrot set, Julia sets and the Buddahbrot.
+Fractal renderer, a selection of fractals are availible from the classic Mandelbrot set to Julia nova and the Newton-Raphson fractal. Fully  parallelised using MPI, but also can be compiled in serial.
 
 
 PREREQUISITS
@@ -18,7 +18,7 @@ This project is written in FORTRAN90. A fortran compiler is required, either gfo
 INSTALL
 -------
 
-Edit the Makefile to specify the compiler and communications architecture.Compile using ```make```. To install to the '''build/''' directory, use ```make install``` Installation can be cleaned of object files using ```make clean```, to fully clean installation, use ```make cleanall```.
+Edit the Makefile to specify the compiler and communications architecture.Compile using ```make```. To install to the '''build/''' directory, use ```make install``` Installation can be cleaned of object files using ```make clean```, to fully clean installation, use ```make clean_all```.
 
 IMAGING
 -------
