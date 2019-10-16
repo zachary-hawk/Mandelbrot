@@ -29,11 +29,12 @@ subsystem:
 	export $(COMMS_ARCH)
 	$(MAKE) -C $(SOURCE)
 	install -m 557 $(SOURCE)/mandelbrot.mpi $(BUILD_DIR)
+	rm -f $(SOURCE)/mandelbrot.mpi
 
 .phony: install
 
 clean:
-	rm -f $(SOURCE)/*.o $(objects) $(SOURCE)/mandelbrot.* $(BUILD_DIR)/mandelbrot.* $(SOURCE)/*.mod
+	rm -f $(SOURCE)/*.o $(objects)  $(BUILD_DIR)/mandelbrot.mpi $(SOURCE)/*.mod
 
 
 
@@ -47,18 +48,18 @@ subsystem:
 	export $(COMMS_ARCH)
 	$(MAKE) -C $(SOURCE)
 	install -m 557 $(SOURCE)/mandelbrot.serial $(BUILD_DIR)
-
+	rm -f $(SOURCE)/mandelbrot.serial
 .phony: install
 
 
 
 clean:
-	rm -f $(SOURCE)/*.o $(objects) $(SOURCE)/mandelbrot.*  $(SOURCE)/*.mod
+	rm -f $(SOURCE)/*.o $(objects)  $(SOURCE)/*.mod
 
-clean_all:
-	rm -f $(BUILD_DIR)/mandelbrot.*
+
 endif
-
+clean_all:
+	rm -f $(BUILD_DIR)/mandelbrot.* $(SOURCE)/*.o $(objects)  $(SOURCE)/*.mod
 
 dist:
 	tar  --exclude="./.git" --exclude="./test" --exclude="./*/*.mpi" --exclude="./*/*.serial" --exclude="./source/*.o" --exclude="./source/*.mod" -cvf MANDELBROT.tar .
