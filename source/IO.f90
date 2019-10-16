@@ -1,3 +1,4 @@
+!---- File documented by Fortran Documenter, Z.Hawkhead
 !----file documented by Fortran Documenter, Z.Hawkhead
 !=============================================================================!
 !                                     IO                                      !                                                                                                            
@@ -147,7 +148,7 @@ contains
     call trace_exit("IO_HEADER")
   end subroutine io_header
 
-  subroutine io_file(nprocs,memory_buffer,disk_stor)
+  subroutine io_file(nprocs,memory_buffer,disk_stor,file_name)
     !==============================================================================!
     !                                   F I L E                                    !
     !==============================================================================!
@@ -166,6 +167,8 @@ contains
     character*10                    :: b(3)
     integer,intent(in)              :: nprocs
     real,intent(in)                 :: memory_buffer,disk_stor
+    character(*),intent(in)         :: file_name
+    
     call trace_entry("IO_FILE")
     call date_and_time(b(1), b(2), b(3), d_t)
     months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
@@ -180,7 +183,7 @@ contains
 1000 format (' Calculation started:  ', A, 1x, i2.2, 1x, i4.4, ' at ',i2.2, ':', i2.2, ':', i2.2 ,".",i3.3)
     write(stdout,*)
     if (file_exist)then
-       write(stdout,*) "Reading Parameters file"
+       write(stdout,*) "Reading Parameters file: "//file_name//".mand"
     else
        write(stdout,*) "No Parameters file found, using defaults"
     end if
@@ -324,9 +327,9 @@ contains
 
     call trace_exit("IO_FILE")
   end subroutine io_file
-  
 
-  subroutine io_read_parameters()
+
+  subroutine io_read_parameters(file_name)
     !==============================================================================!
     !                        R E A D _ P A R A M E T E R S                         !
     !==============================================================================!
@@ -338,7 +341,8 @@ contains
     !------------------------------------------------------------------------------!
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
-
+    character(*),intent(in)      :: file_name
+    
     integer                      :: i,counter,j,stat=0,max_stat
     character(len=30)            :: chara,name,val,z_re_char,z_im_char,junk
     character(len=5)             :: out_1,out_2
@@ -358,9 +362,9 @@ contains
 
 
 
-    inquire(file="param.mand", EXIST=file_exist)
+    inquire(file=file_name//".mand", EXIST=file_exist)
     if (file_exist)then 
-       open(unit=24,file="param.mand",status="OLD",access="stream",form="formatted")
+       open(unit=24,file=file_name//".mand",status="OLD",access="stream",form="formatted")
 
        do while (max_stat .eq. 0) 
 
@@ -385,14 +389,15 @@ contains
 
           name=adjustl(name)
           val=adjustl(val)
+
           if (adjustl(name).eq."grid_size")then
              call io_scientific_corr(val)
              read(val,*,iostat=stat)N
-             if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
+             if (stat.ne.0)call io_errors("Error in I/O read from "//file_name//".mand: "//trim(val))
           elseif (name.eq."max_iter")then
-        !     call io_scientific_corr(val)
+             !     call io_scientific_corr(val)
              read(val,*,iostat=stat)max_iter
-             if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
+             if (stat.ne.0)call io_errors("Error in I/O read from "//file_name//".mand: "//trim(val))
              change_iter=.TRUE.
           elseif (name.eq."exponent")then
              call io_split_params(val,out_1,out_2,temp_logical)
@@ -400,55 +405,55 @@ contains
                 call io_int_to_real(out_1)
                 call io_int_to_real(out_2)
                 read(out_1,*,iostat=stat)e_default
-                if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(out_1))
+                if (stat.ne.0)call io_errors("Error in I/O read from "//file_name//".mand: "//trim(out_1))
                 read(out_2,*,iostat=stat)e_rational
-                if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(out_2))
+                if (stat.ne.0)call io_errors("Error in I/O read from "//file_name//".mand: "//trim(out_2))
                 change_exp=.true.
              else
                 call io_int_to_real(val)
                 read(val,*,iostat=stat)e_default
-                if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
+                if (stat.ne.0)call io_errors("Error in I/O read from "//file_name//".mand: "//trim(val))
                 change_exp=.true.
              end if
           elseif (name.eq."lambda")then
              call io_int_to_real(val)
-       !      call io_scientific_corr(val)
+             !      call io_scientific_corr(val)
              read(val,*,iostat=stat)lambda
 
-             if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
+             if (stat.ne.0)call io_errors("Error in I/O read from "//file_name//".mand: "//trim(val))
           elseif (name.eq."buddah_const".or.name.eq."Buddah_const")then
              read(val,*,iostat=stat)buddah_param
-             if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
+             if (stat.ne.0)call io_errors("Error in I/O read from "//file_name//".mand: "//trim(val))
           elseif (name.eq."complex_seed")then
              read(val,*,iostat=stat)julia_const
-             if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
+             if (stat.ne.0)call io_errors("Error in I/O read from "//file_name//".mand: "//trim(val))
              change_julia=.TRUE.
           elseif (name.eq."relaxation")then
              call io_int_to_real(val)
              read(val,*,iostat=stat)relaxation
-             if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
+             if (stat.ne.0)call io_errors("Error in I/O read from "//file_name//".mand: "//trim(val))
           elseif (name.eq."x_low")then
              call io_int_to_real(val)
              read(val,*,iostat=stat)lower_x
-             if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
+             if (stat.ne.0)call io_errors("Error in I/O read from "//file_name//".mand: "//trim(val))
              change_lx=.true.
           elseif (name.eq."x_up")then
              call io_int_to_real(val)
-      !       call io_scientific_corr(val)
+             !       call io_scientific_corr(val)
              read(val,*,iostat=stat)upper_x
-             if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
+             if (stat.ne.0)call io_errors("Error in I/O read from "//file_name//".mand: "//trim(val))
              change_ux=.true.
           elseif (name.eq."y_low")then
              call io_int_to_real(val)
-      !       call io_scientific_corr(val)
+             !       call io_scientific_corr(val)
              read(val,*,iostat=stat)lower_Y
-             if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
+             if (stat.ne.0)call io_errors("Error in I/O read from "//file_name//".mand: "//trim(val))
              change_ly=.true.        
           elseif (name.eq."y_up")then
              call io_int_to_real(val)
-      !       call io_scientific_corr(val)
+             !       call io_scientific_corr(val)
              read(val,*,iostat=stat)upper_Y
-             if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
+             if (stat.ne.0)call io_errors("Error in I/O read from "//file_name//".mand: "//trim(val))
              change_uy=.true.       
           elseif (name.eq."debug")then
              if(val.eq."true")then
@@ -481,17 +486,17 @@ contains
              call io_int_to_real(val)
              call io_scientific_corr(val)
              read(val,*,iostat=stat) zoom_factor
-             if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
+             if (stat.ne.0)call io_errors("Error in I/O read from "//file_name//".mand: "//trim(val))
              zoom=.true.
           elseif (name.eq."zoom_centre")then
              read(val,*,iostat=stat)centre
-             if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
+             if (stat.ne.0)call io_errors("Error in I/O read from "//file_name//".mand: "//trim(val))
              zoom=.true.
           elseif (name.eq."bail_out")then
              call io_int_to_real(val)
              call io_scientific_corr(val)
              read(val,*,iostat=stat)BAIL_OUT
-             if (stat.ne.0)call io_errors("Error in I/O read from param.mand: "//trim(val))
+             if (stat.ne.0)call io_errors("Error in I/O read from "//file_name//".mand: "//trim(val))
           elseif(name.eq."plot_parallel")then
              if (val.eq."true".or.val.eq."True")then
                 lookfor_parallel=.TRUE.
@@ -608,10 +613,10 @@ contains
 
     if (change_lx.or.change_ly.or.change_ux.or.change_uy)then
        if (zoom)&
-         call io_errors("Error in I/O, Cannot change extent in a zoom calculation")
+            call io_errors("Error in I/O, Cannot change extent in a zoom calculation")
     endif
     call trace_exit("IO_READ_PARAMETERS")
-    
+
     if (zoom.and.debug) max_iter=max_iter+zoom_factor
     if (zoom_factor.eq.0) call io_errors("Error in I/O, zoom_factor must be non-zero")
   end subroutine IO_READ_PARAMETERS
@@ -658,7 +663,7 @@ contains
     !------------------------------------------------------------------------------!
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
-    
+
     write(*,*) "PARAMETERS:"
     write(*,*)
 73  format(1x,A16,5x,A,5x,A) !Paramter
@@ -694,7 +699,7 @@ contains
     write(*,78) "Allowed",":","any real"
     write(*,76) "Default",":",lambda
     write(*,*)
-    
+
     write(*,73) adjustl("BUDDAH_CONST"),":","Specify No. initial posotions in Buddahbrot calculation"
     write(*,78) "Allowed",":","any int > 0"
     write(*,75) "Default",":",buddah_param
@@ -749,7 +754,7 @@ contains
     write(*,78) "Allowed",":","NORMAL,TRIANGLE,ANGLE,SIMPLE_SET"
     write(*,74) "Default",":","NORMAL"
     write(*,*)
-    
+
     write(*,73) adjustl("RELAXATION"),":","Specify the relaxation parameter for the Newton fractal"
     write(*,78) "Allowed",":","any real>0"
     write(*,74) "Default",":","1.0"
@@ -826,7 +831,7 @@ contains
     call trace_exit("IO_PRINT_DRY")
     call trace_finalise(rank,debug)
     stop
-    
+
   end subroutine io_print_dry
 
 
@@ -870,7 +875,7 @@ contains
     open(20,file="err.mand",status="unknown",access="append")
     write(20,*) "Error: ",trim(message)
     close(20)
-    
+
     stop
 
   end subroutine io_errors
@@ -904,6 +909,20 @@ contains
 
 
   subroutine io_split_params(in_char,out_char1,out_char2,found)
+    !==============================================================================!
+    !                        I O _ S P L I T _ P A R A M S                         !
+    !==============================================================================!
+    ! Low level subroutine for parsing parameters, splits parameters from the      !
+    ! keyword.                                                                     !
+    !------------------------------------------------------------------------------!
+    ! Arguments:                                                                   !
+    !           in_char,           intent :: in                                    !
+    !           out_char1,         intent :: inout                                 !
+    !           out_char2,         intent :: inout                                 !
+    !           found,             intent :: inout                                 !
+    !------------------------------------------------------------------------------!
+    ! Author:   Z. Hawkhead  01/10/2019                                            !
+    !==============================================================================!
     implicit none
     character(*),intent(in)       :: in_char
     character(5),intent(inout)    :: out_char1,out_char2
@@ -921,11 +940,23 @@ contains
     end do
 
     call trace_exit("IO_SPLIT_PARAMS")
-    
+
   end subroutine io_split_params
 
 
   subroutine io_zoom(zoom_check)
+    !==============================================================================!
+    !                                I O _ Z O O M                                 !
+    !==============================================================================!
+    ! Subroutine for handling the parsing of the zoom functionality, defines the   !
+    ! aspect of the image based on the default aspect, the zoom multiplier and     !
+    ! the centre of the image.                                                     !
+    !------------------------------------------------------------------------------!
+    ! Arguments:                                                                   !
+    !           zoom_check,        intent :: in                                    !
+    !------------------------------------------------------------------------------!
+    ! Author:   Z. Hawkhead  01/10/2019                                            !
+    !==============================================================================!
     implicit none
     logical            :: zoom_check
     real(complex_kind) :: width,height
@@ -947,13 +978,24 @@ contains
 
 
   subroutine io_scientific_corr(char)
+    !==============================================================================!
+    !                     I O _ S C I E N T I F I C _ C O R R                      !
+    !==============================================================================!
+    ! Subroitine for parsing parameters given in the exponential format, adds a    !
+    ! '.' if it is absent in the declaration.                                      !
+    !------------------------------------------------------------------------------!
+    ! Arguments:                                                                   !
+    !           char,              intent :: inout                                 !
+    !------------------------------------------------------------------------------!
+    ! Author:   Z. Hawkhead  01/10/2019                                            !
+    !==============================================================================!
     implicit none
     character(*),intent(inout)    :: char
 
     logical                       :: found_e
     integer                       :: i
     character(len=20)             :: temp,temp2
-    
+
     call trace_entry("IO_SCIENTIFIC_CORR")
 
     do i=1,len_trim(char)
@@ -962,13 +1004,17 @@ contains
           exit
        end if
     end do
-
+    
     if (found_e)then
        temp=char(1:i-1)
        call io_int_to_real(temp)
 
        temp2=trim(temp)//trim(char(i:len_trim(char)))
+    else
+       return
     end if
+
+
     char=temp2
     if (char(len_trim(char):len_trim(char)).eq.".")then
        char=char(1:len_trim(char)-1)
@@ -976,6 +1022,6 @@ contains
     call trace_exit("IO_SCIENTIFIC_CORR")
   end subroutine io_scientific_corr
 
-  
+
 end module IO
 

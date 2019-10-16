@@ -31,7 +31,7 @@ contains
     integer,intent(in)              :: int
     real,intent(inout)              :: z_cum
     real(kind=real128)              :: max,min
-!   call trace_entry("TRIANGLE_INEQ")
+    !   call trace_entry("TRIANGLE_INEQ")
 
 
 
@@ -48,7 +48,7 @@ contains
     end if
 
     if (int.gt.max_iter-1)z_cum=0
-!    call trace_exit("TRIANGLE_INEQ")
+    !    call trace_exit("TRIANGLE_INEQ")
   end subroutine colour_triangle_ineq
 
 
@@ -72,30 +72,54 @@ contains
     implicit none
     complex(complex_kind),intent(in)     :: z
     real,intent(inout)                   :: theta
-!    call trace_entry("AVE_ANGLE")
+    !    call trace_entry("AVE_ANGLE")
     if (abs(real(z)).gt.0)then
 
        theta=theta+atan(aimag(z)/real(z))
     else
        theta=theta
     end if
-!    call trace_exit("AVE_ANGLE")
+    !    call trace_exit("AVE_ANGLE")
   end subroutine colour_ave_angle
 
-  
+
 
   subroutine colour_smooth_iter(k,z,colour)
+    !==============================================================================!
+    !                     C O L O U R _ S M O O T H _ I T E R                      !
+    !==============================================================================!
+    ! Subroutine defining the colouring algorithm for smoothing.                   !
+    !------------------------------------------------------------------------------!
+    ! Arguments:                                                                   !
+    !           k,                 intent :: in                                    !
+    !           z,                 intent :: in                                    !
+    !           colour,            intent :: inout                                 !
+    !------------------------------------------------------------------------------!
+    ! Author:   Z. Hawkhead  01/10/2019                                            !
+    !==============================================================================!
     implicit none
     complex(complex_kind),intent(in) :: z
     integer,intent(in)               :: k
     real,intent(inout)               :: colour
-!    call trace_entry("SMOOTH_ITER")
+    !call trace_entry("SMOOTH_ITER")
     colour=k-((log(abs(z))/log(bail_out))/log(e_default))
     !    if (colour.gt.100)colour=100
-!    call trace_exit("SMOOTH_ITER")
+    !call trace_exit("SMOOTH_ITER")
   end subroutine colour_smooth_iter
 
   subroutine colour_set(k,colour)
+    !==============================================================================!
+    !                             C O L O U R _ S E T                              !
+    !==============================================================================!
+    ! Subroutine defining the colouring algorithm that produces images with no     !
+    ! colouring of the points outside the set.                                     !
+    !------------------------------------------------------------------------------!
+    ! Arguments:                                                                   !
+    !           k,                 intent :: in                                    !
+    !           colour,            intent :: inout                                 !
+    !------------------------------------------------------------------------------!
+    ! Author:   Z. Hawkhead  01/10/2019                                            !
+    !==============================================================================!
     implicit none
 
     integer,intent(in)               :: k
@@ -110,6 +134,18 @@ contains
   end subroutine colour_set
 
   subroutine colour_exponential(z,colour_ref)
+    !==============================================================================!
+    !                     C O L O U R _ E X P O N E N T I A L                      !
+    !==============================================================================!
+    ! Subroutine defining the colouring algorithm that implements the              !
+    ! exponential smoothing method.                                                !
+    !------------------------------------------------------------------------------!
+    ! Arguments:                                                                   !
+    !           z,                 intent :: in                                    !
+    !           colour_ref,        intent :: inout                                 !
+    !------------------------------------------------------------------------------!
+    ! Author:   Z. Hawkhead  01/10/2019                                            !
+    !==============================================================================!
     implicit none
     complex(complex_kind),intent(in)     :: z
     real,intent(inout)                   :: colour_ref
@@ -118,6 +154,20 @@ contains
   end subroutine colour_exponential
 
   subroutine colour_light(z,k_real,i,dir)
+    !==============================================================================!
+    !                           C O L O U R _ L I G H T                            !
+    !==============================================================================!
+    ! Subroutine defining the colouring algorithm that renders to look 3D with a   !
+    ! light source shining on it from a 45 deg angele. Currently not working.      !
+    !------------------------------------------------------------------------------!
+    ! Arguments:                                                                   !
+    !           z,                 intent :: in                                    !
+    !           k_real,            intent :: inout                                 !
+    !           i,                 intent :: in                                    !
+    !           dir,               intent :: inout                                 !
+    !------------------------------------------------------------------------------!
+    ! Author:   Z. Hawkhead  01/10/2019                                            !
+    !==============================================================================!
     implicit none
     complex(complex_kind),intent(in)     :: z
     real,intent(inout)                   :: k_real
@@ -145,5 +195,5 @@ contains
     end if
   end subroutine colour_light
 
-  
+
 end module colours

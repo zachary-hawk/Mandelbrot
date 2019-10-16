@@ -1,3 +1,4 @@
+!---- File documented by Fortran Documenter, Z.Hawkhead
 !=============================================================================!
 !                           M A N D E L B R O T                               !
 !=============================================================================!
@@ -23,8 +24,8 @@ program Mandelbrot
   double precision                :: par_time=0.0,tot_par_time,total_proc_times
   double precision                :: after_calc,after_calc_buff
   integer                         :: narg,cptArg,buddah_counter=0,buddah_buff_counter !#of arg & counter of arg
-  character(len=20)               :: name !Arg name
-  logical                         :: args_bool=.FALSE.,dryrun=.false.,lookfor_c=.false.,on_root
+  character(len=20)               :: name,file_name="param" !Arg name
+  logical                         :: args_bool=.FALSE.,dryrun=.false.,lookfor_c=.false.,on_root,new_file
   character*10                    :: clear_check
   real                            :: eff,z_im=0.,z_re=0.
   integer                         :: data_size
@@ -33,7 +34,7 @@ program Mandelbrot
   real                            :: cos_thing
 
   call trace_init()
-
+  call trace_entry("MANDELBROT")
   !SET UP MPI ENVIRONMENT
   CALL COMMS_INIT()
 
@@ -79,12 +80,17 @@ program Mandelbrot
            stop
         case("-d","--dryrun")
            dryrun=.TRUE.
-
+        case("-f")
+           new_file=.true.
         case default
-           write(*,33)"Undefined Flag:", name
-33         format(1x,A,1x,A)
-           call io_print_help()
-           stop
+           if (new_file)then
+              file_name=adjustl(name)
+           else
+              write(*,33)"Undefined Flag:", name
+33            format(1x,A,1x,A)
+              call io_print_help()
+              stop
+           end if
         end select
      end do
   end if
@@ -93,7 +99,7 @@ program Mandelbrot
 
 !!! Define the parameters from the param.mand
 
-  call io_read_parameters()
+  call io_read_parameters(trim(file_name))
 
   call io_zoom(zoom)
 
@@ -190,7 +196,7 @@ program Mandelbrot
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! FILE WRITTING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  if (on_root) call io_file(nprocs,memory_buffer,disk_stor)
+  if (on_root) call io_file(nprocs,memory_buffer,disk_stor,trim(file_name))
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -429,9 +435,7 @@ program Mandelbrot
   CALL COMMS_REDUCE_DOUBLE(par_time,tot_par_time,1,"MPI_SUM")
   CALL COMMS_REDUCE_DOUBLE(after_calc,after_calc_buff,1,"MPI_MAX")
 
-  !FINALISE THE TRACE
-  call trace_finalise(rank,debug)
-
+  
 
   CALL COMMS_REDUCE_REAL(comms_time,comms_time_buff,1,"MPI_SUM")
   comms_time=comms_time_buff/nprocs
@@ -478,5 +482,8 @@ program Mandelbrot
 
   CALL COMMS_FINALISE()
 
+  !FINALISE THE TRACE
+  call trace_exit("MANDELBROT")
+  call trace_finalise(rank,debug)
 
 end program Mandelbrot

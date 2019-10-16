@@ -38,6 +38,7 @@ contains
     complex(complex_kind)::z,c,z_old=(0,0),dir
     integer :: k
     real :: e,z_cum=0,k_real
+    !call trace_entry("FRACTAL_MAND")
     k_real=0
     dir=(0,0)
     if (e.EQ.int(e))then 
@@ -90,7 +91,7 @@ contains
     end if
 
 
-
+    !call trace_exit("FRACTAL_MAND")
   end function fractal_mand
 
 
@@ -582,6 +583,25 @@ contains
 
 
   function fractal_rational(Max_iter,c,z,e_1,e_2,lambda) result(k_real)
+    !==============================================================================!
+    !                       F R A C T A L _ R A T I O N A L                        !
+    !==============================================================================!
+    ! Function defining the formula for the rational fractal set, used to          !
+    ! produce pretty geometrical shapes.                                           !
+    !------------------------------------------------------------------------------!
+    ! Arguments:                                                                   !
+    !           Max_iter,          intent :: in                                    !
+    !           c,                 intent :: in                                    !
+    !           z,                 intent :: in                                    !
+    !           e_1,               intent :: in                                    !
+    !           e_2,               intent :: in                                    !
+    !           lambda,            intent :: in                                    !
+    !------------------------------------------------------------------------------!
+    ! Result:                                                                      !
+    !           k_real                                                             !
+    !------------------------------------------------------------------------------!
+    ! Author:   Z. Hawkhead  01/10/2019                                            !
+    !==============================================================================!
 
     integer,intent(in)::Max_iter 
     complex(complex_kind)::z,c,z_old=(0,0)

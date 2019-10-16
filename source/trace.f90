@@ -1,7 +1,5 @@
 !---- File documented by Fortran Documenter, Z.Hawkhead
 !---- File documented by Fortran Documenter, Z.Hawkhead
-!---- File documented by Fortran Documenter, Z.Hawkhead
-!----file documented by Fortran Documenter, Z.Hawkhead
 !=============================================================================!
 !                                 T R A C E                                   !
 !=============================================================================!
@@ -18,6 +16,8 @@ module trace
   real,dimension(:),allocatable             :: temp_real_array
   character(50),dimension(:),allocatable    :: temp_char_array
   character(50),dimension(:),allocatable    :: unique_array
+  integer,dimension(:),allocatable          :: parent_array
+  integer,dimension(:),allocatable          :: temp_int_array
   real                                      :: comms_start_time
   real                                      :: io_start_time
   real                                      :: comms_end_time
@@ -25,7 +25,8 @@ module trace
   real                                      :: comms_time
   real                                      :: io_time
   integer                                   :: no_subs
-
+  integer                                   :: parent_counter=0
+  
 contains
 
   subroutine trace_init()
@@ -45,6 +46,7 @@ contains
     allocate(entry_time_array(1))
     allocate(exit_array(1))
     allocate(exit_time_array(1))
+    allocate(parent_array(1))
   end subroutine trace_init
 
 
@@ -62,7 +64,7 @@ contains
     ! Author:   Z. Hawkhead  26/08/2019                                            !
     !==============================================================================!
     implicit none
-    character(*), intent(in) :: sub_name
+    character(*), intent(in)  :: sub_name
     real                      :: time
 
     call CPU_TIME(time)
@@ -73,6 +75,7 @@ contains
     !set the things to the last array element
 
     entry_array(size(entry_array))=sub_name
+    parent_array(size(parent_array))=parent_counter
     entry_time_array(size(entry_time_array))=time
 
     !increase the size of the array
@@ -85,9 +88,16 @@ contains
     temp_char_array(1:size(entry_array))=entry_array
     call  move_alloc(temp_char_array,entry_array)
 
+    allocate(temp_int_array(1:size(parent_array)+1))
+    temp_int_array(1:size(parent_array))=parent_array
+    call  move_alloc(temp_int_array,parent_array)
+
 
     if (allocated(temp_real_array)) deallocate(temp_real_array)
     if (allocated(temp_char_array)) deallocate(temp_char_array)
+
+    !increase the parent counter
+    parent_counter=parent_counter+1
 
   end subroutine trace_entry
 
@@ -134,6 +144,9 @@ contains
     if (allocated(temp_real_array)) deallocate(temp_real_array)
     if (allocated(temp_char_array)) deallocate(temp_char_array)
 
+
+    !decrease the parent counter
+    parent_counter=parent_counter-1
   end subroutine trace_exit
 
 
@@ -162,10 +175,12 @@ contains
     integer,intent(inout)            :: rank
     ! TRIM DOWN THE ARRAYS
 
-    print*,entry_array
-    print*,exit_array
+    !print*,entry_array
+    !print*,exit_array
+    parent_array(size(parent_array))=0
+    !print*,parent_array
 
-
+    
     allocate(temp_real_array(1:size(entry_time_array)-1))
     temp_real_array(1:size(entry_time_array))=entry_time_array
     call  move_alloc(temp_real_array,entry_time_array)
@@ -187,7 +202,7 @@ contains
     comms_time=abs(comms_end_time-comms_start_time)
     io_time=abs(io_end_time-io_start_time)
 
-
+    
 
     if (allocated(temp_real_array)) deallocate(temp_real_array)
     if (allocated(temp_char_array)) deallocate(temp_char_array)
@@ -398,47 +413,73 @@ contains
     write(file_id,*) "+==================================================================================+"
     write(file_id,*) "|       Subroutine:                 Call Count:                  Time:             |"
     write(file_id,*) "+==================================================================================+"
-    write(file_id,*) "|                                                                                  |"
+
+
 19  format(1x,"|",3x,A25,10x,i5,19x,f10.4,1x,"s",8x,"|")
     do i=1,size(subs_list)
        write(file_id,19) adjustl(subs_list(i)),call_list(i),time_list(i)
 
     end do
-    write(file_id,*) "|                                                                                  |"
-    write(file_id,*) "+----------------------------------------------------------------------------------+"
-!    write(file_id,*) "|                                                                                  |"
-    write(file_id,'(1x,A,3x,A,3x,i3,48x,a)') "|","No. Subroutines Profiled:",size(subs_list),"|"
-    write(file_id,'(1x,A,3x,A,4x,f10.5,1x,a,43x,a)') "|","Time Spent in COMMS:",comms_time,"s","|"
-    write(file_id,'(1x,A,3x,A,4x,f10.5,1x,a,43x,a)') "|","Time Spent in IO   :",io_time,"s","|"    
-!    write(file_id,*) "|                                                                                  |"
+
     write(file_id,*) "+==================================================================================+"
+
+    write(file_id,'(1x,A,3x,A,3x,i3,47x,a)') "|","No. Subroutines Profiled :",size(subs_list),"|"
+    write(file_id,'(1x,A,3x,A,2x,f10.5,1x,a,39x,a)') "|","Time Spent in COMMS      :",comms_time,"s","|"
+    write(file_id,'(1x,A,3x,A,2x,f10.5,1x,a,39x,a)') "|","Time Spent in IO         :",io_time,"s","|"    
+
+    write(file_id,*) "+==================================================================================+"
+    call trace_parents(file_id)
     close(file_id)
   end subroutine trace_IO
 
 
-
-  subroutine trace_parents()
-!==============================================================================!
-!                          T R A C E _ P A R E N T S                           !
-!==============================================================================!
-! Subroutine for identifying the parents of a different subroutine currently   !
-! being traced. Puts the subroutines in order and counts the number of         !
-! parents.                                                                     !
-!------------------------------------------------------------------------------!
-! Arguments:                                                                   !
-!           None                                                               !
-!------------------------------------------------------------------------------!
-! Author:   Z. Hawkhead  01/10/2019                                            !
-!==============================================================================!
+  subroutine trace_parents(file_id)
     implicit none
+    integer :: file_id,temp_int,i,width,width2
+    character(len=100) :: fmt_str,fmt_str2
 
 
-!    there is something here 
-    
+    !39  format(1x,"|",4x,<temp_int>x,A,1x,A,<width>x"|")
+    !38  format(1x,"|",3x,<temp_int>x,A,<width2>x"|")
 
-    
 
+    write(file_id,*) "|                                    Call Log:                                     |"
+    write(file_id,*) "+==================================================================================+"
+
+
+
+
+    do i=1,size(parent_array)-1
+
+       temp_int=2*parent_array(i)
+       width=82-4-temp_int-3-1-len(entry_array(i))
+       width2=82-4-temp_int
+       if (temp_int.eq.0)then
+          write(fmt_str,'(A,i0,A,A)') '(1x,"|",4x,A,1x,A,',width,'x,"|")'
+          write(fmt_str2,'(A,i0,A,A)') '(1x,"|",3x,A,',width2,'x,"|")'
+       else
+          
+          write(fmt_str,'(A,i0,A,i0,A)') '(1x,"|",4x,',temp_int,'x,A,1x,A,',width,'x,"|")'
+          write(fmt_str2,'(A,i0,A,i0,A)') '(1x,"|",3x,',temp_int,'x,A,',width2,'x,"|")'
+       end if
+
+       !print*,fmt_str
+       !print*,fmt_str2
+
+       if (i.gt.1)then
+          if (parent_array(i).gt.parent_array(i-1)) write(file_id,trim(fmt_str2)) '\'
+
+
+       end if
+       write(file_id,trim(fmt_str)) "o->",entry_array(i)
+       if (parent_array(i).eq.parent_array(i+1)+1.and.i.lt.size(parent_array)-1)&
+            write(file_id,trim(fmt_str2)) "/"
+    end do
+
+
+    write(file_id,*) "+==================================================================================+"
   end subroutine trace_parents
-    
+
+
 
 end module trace
