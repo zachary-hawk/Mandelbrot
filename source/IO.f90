@@ -18,7 +18,7 @@ module IO
   real             :: relaxation=1
   real             :: e_default=2.
   real             :: e_rational=-2
-  real             :: lambda=1
+  real             :: lambda=-0.35
   real             :: bail_out=1.e5
   real             :: light_angle=45
   real,parameter   :: pi=3.141592654             
@@ -57,7 +57,7 @@ module IO
   character(81)    :: parser_version="Mandelbrot v.3.0, Z.Hawkhead" 
   character(100)   :: info="Parallel code for calculating the Mandelbrot Set"
   character(100)   :: DATE,TIME,compiler,arch_string,version,cpuinfo
-  integer,parameter:: complex_kind=real32
+  integer,parameter:: complex_kind=real128
   complex(complex_kind):: centre=(0,0)
 
   !  public :: triangle,ave_ang
@@ -342,7 +342,7 @@ contains
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
     character(*),intent(in)      :: file_name
-    
+
     integer                      :: i,counter,j,stat=0,max_stat
     character(len=30)            :: chara,name,val,z_re_char,z_im_char,junk
     character(len=5)             :: out_1,out_2
@@ -582,25 +582,35 @@ contains
        if (.not.change_ux)upper_x=2.0
        if (.not.change_ly)lower_y=-2.0
        if (.not.change_uy)upper_y=2.0
-    elseif (burn_for_carrying)then
+    endif
+    if (do_phoenix)then
+       if (.not.change_julia)julia_const=(0.566666,-0.5)
+    endif
+    if (do_nova.or.do_rational)then
+       if (.not.change_julia)julia_const=(0.0,0.0)
+    end if
+    if (burn_for_carrying)then
        if (.not.change_lx)lower_x=-2.0
        if (.not.change_ux)upper_x=2.0
        if (.not.change_ly)lower_y=-2.
        if (.not.change_uy)upper_y=0.75
        if(.not.change_julia)julia_const=(0.,0.)
-    elseif (b_for_carrying)then
+    endif
+    if (b_for_carrying)then
        upper_x=0.75
        lower_X=-2.0
        lower_Y=-1.25
        upper_Y=1.25
        if (.not.change_iter)  max_iter=1000
-    elseif (newt_for_carrying.or.do_nova)then 
+    endif
+    if (newt_for_carrying.or.do_nova)then 
        if (.not.change_lx)lower_x=-2.0
        if (.not.change_ux)upper_x=2.0
        if (.not.change_ly)lower_y=-2.0
        if (.not.change_uy)upper_y=2.0
        if (.not.change_exp)e_default=3.0
-    elseif (do_magnet)then
+    endif
+    if (do_magnet)then
        if (.not.change_lx)lower_x=-1.0
        if (.not.change_ux)upper_x=3.5
        if (.not.change_ly)lower_y=-2.5

@@ -36,17 +36,18 @@ contains
     implicit none
     integer,intent(in)::Max_iter 
     complex(complex_kind)::z,c,z_old=(0,0),dir
-    integer :: k
-    real :: e,z_cum=0,k_real
+    integer :: k,m=0
+    real :: e,z_cum=0,k_real,z_cum_old,d
     !call trace_entry("FRACTAL_MAND")
     k_real=0
     dir=(0,0)
     if (e.EQ.int(e))then 
        do k=1,Max_iter
           z_old=z
-          z = z**int(e)+c
 
+          z = z**int(e)+c
           if (triangle)then
+             z_cum_old=z_cum
              call colour_triangle_ineq(z,c,z_old,z_cum,k)
           elseif (ave_an)then
              call colour_ave_angle(z,k_real)
@@ -62,10 +63,12 @@ contains
     else
        do k=0,Max_iter
           z_old=z
-          z = z**e+c
-          if (triangle)then
-             call colour_triangle_ineq(z,c,z_old,z_cum,k)
 
+          z = z**e+c
+
+          if (triangle)then
+             z_cum_old=z_cum
+             call colour_triangle_ineq(z,c,z_old,z_cum,k)
           elseif (ave_an)then
              call colour_ave_angle(z,k_real)
           else if (exponential)then
@@ -76,10 +79,13 @@ contains
           end if
        end do
     end if
-
+    
     if (triangle)then
-       k_real=z_cum/real(k)
+       call colour_smooth_iter(k,z,d)
+       d=d-int(d)
+       k_real=d*z_cum+(1-d)*z_cum_old
        if (isnan(k_real))k_real=0
+       if (k.gt.max_iter-1)k_real=0
        z_cum=0
 
     elseif(ave_an)then 
@@ -115,15 +121,17 @@ contains
     integer,intent(in)::Max_iter 
     complex(complex_kind)::z,c,z_old=(0,0)
     integer :: k
-    real :: e,z_cum=0,k_real
+    real :: e,z_cum=0,k_real,d,z_cum_old
     k_real=0
     !    call trace_entry("JULIA")
     if (e.EQ.int(e))then
        do k=0,Max_iter
           z_old=z
+
           z = z**int(e)+c
 
           if (triangle)then
+             z_cum_old=z_cum
              call colour_triangle_ineq(z,c,z_old,z_cum,k)
           elseif (ave_an)then
              call colour_ave_angle(z,k_real)
@@ -139,6 +147,7 @@ contains
           z_old=z       
           z = z**e+c
           if (triangle)then
+             z_cum_old=z_cum
              call colour_triangle_ineq(z,c,z_old,z_cum,k)
           elseif (ave_an)then
              call colour_ave_angle(z,k_real)
@@ -151,10 +160,14 @@ contains
        end do
     end if
 
-    if (triangle)then
-       k_real=z_cum/real(k)
+  if (triangle)then
+       call colour_smooth_iter(k,z,d)
+       d=d-int(d)
+       k_real=d*z_cum+(1-d)*z_cum_old
        if (isnan(k_real))k_real=0
+       if (k.gt.max_iter-1)k_real=0
        z_cum=0
+       
     elseif(ave_an)then
        k_real=k_real/real(k)
        !       if (isnan(k_real))k_real=0
@@ -190,7 +203,7 @@ contains
     integer,intent(in)::Max_iter 
     complex(complex_kind)::z,c,z_old=(0,0)
     integer :: k
-    real :: e,z_cum=0,k_real
+    real :: e,z_cum=0,k_real,d,z_cum_old
     k_real=0
     !    call trace_entry("BURNING")
     if (e.EQ.int(e))then
@@ -200,6 +213,7 @@ contains
           z_old=z
           z = (abs(real(z))+cmplx(0,1)*abs(aimag(z)))**int(e)+c
           if (triangle)then
+             z_cum_old=z_cum
              call colour_triangle_ineq(z,c,z_old,z_cum,k)
           elseif (ave_an)then
              call colour_ave_angle(z,k_real)
@@ -216,6 +230,7 @@ contains
           z_old=z
           z = (abs(real(z))+cmplx(0,1)*abs(aimag(z)))**e+c
           if (triangle)then
+             z_cum_old=z_cum
              call colour_triangle_ineq(z,c,z_old,z_cum,k)
           elseif (ave_an)then
              call colour_ave_angle(z,k_real)
@@ -227,9 +242,12 @@ contains
           end if
        end do
     end if
-    if (triangle)then
-       k_real=z_cum/real(k)
+  if (triangle)then
+       call colour_smooth_iter(k,z,d)
+       d=d-int(d)
+       k_real=d*z_cum+(1-d)*z_cum_old
        if (isnan(k_real))k_real=0
+       if (k.gt.max_iter-1)k_real=0
        z_cum=0
     elseif(ave_an)then
        k_real=k_real/k
@@ -446,7 +464,7 @@ contains
     integer,intent(in)::Max_iter 
     complex(complex_kind)::z,c,z_old=(0,0)
     integer :: k
-    real :: e,z_cum=0,k_real
+    real :: e,z_cum=0,k_real,d,z_cum_old
     k_real=0
     if (e.EQ.int(e))then 
        do k=1,Max_iter
@@ -454,6 +472,7 @@ contains
           z = ((z**int(e)+c-1)/(e*z+c-2))**2
 
           if (triangle)then
+             z_cum_old=z_cum
              call colour_triangle_ineq(z,c,z_old,z_cum,k)
           elseif (ave_an)then
              call colour_ave_angle(z,k_real)
@@ -469,6 +488,7 @@ contains
           z_old=z
           z = ((z**e+c-1)/(e*z+c-2))**2
           if (triangle)then
+             z_cum_old=z_cum
              call colour_triangle_ineq(z,c,z_old,z_cum,k)
 
           elseif (ave_an)then
@@ -483,8 +503,11 @@ contains
     end if
 
     if (triangle)then
-       k_real=z_cum/real(k)
+       call colour_smooth_iter(k,z,d)
+       d=d-int(d)
+       k_real=d*z_cum+(1-d)*z_cum_old
        if (isnan(k_real))k_real=0
+       if (k.gt.max_iter-1)k_real=0
        z_cum=0
 
     elseif(ave_an)then 
@@ -494,7 +517,7 @@ contains
     elseif(smooth)then
        call colour_smooth_iter(k,z,k_real)
     end if
-
+!    k_real=real(k)
   end function fractal_magnet
 
 
@@ -520,7 +543,7 @@ contains
     complex(complex_kind) :: z_2
     complex(complex_kind),dimension(:),allocatable :: history
     integer :: k
-    real :: e,z_cum=0,k_real
+    real :: e,z_cum=0,k_real,d,z_cum_old
 
     allocate(history(0:max_iter))
     k_real=0
@@ -535,6 +558,7 @@ contains
           z = history(k-1)**int(e)+real(c)+aimag(c)*history(k-2)
           history(k)=z
           if (triangle)then
+             z_cum_old=z_cum
              call colour_triangle_ineq(z,c,z_old,z_cum,k)
           elseif (ave_an)then
              call colour_ave_angle(z,k_real)
@@ -553,6 +577,7 @@ contains
           z = history(k-1)**e+real(c)+aimag(c)*history(k-2)
           history(k)=z
           if (triangle)then
+             z_cum_old=z_cum
              call colour_triangle_ineq(z,c,z_old,z_cum,k)
           elseif (ave_an)then
              call colour_ave_angle(z,k_real)
@@ -566,8 +591,11 @@ contains
     end if
 
     if (triangle)then
-       k_real=z_cum/real(k)
+       call colour_smooth_iter(k,z,d)
+       d=d-int(d)
+       k_real=d*z_cum+(1-d)*z_cum_old
        if (isnan(k_real))k_real=0
+       if (k.gt.max_iter-1)k_real=0
        z_cum=0
     elseif(ave_an)then
        k_real=k_real/real(k)
@@ -606,7 +634,7 @@ contains
     integer,intent(in)::Max_iter 
     complex(complex_kind)::z,c,z_old=(0,0)
     integer :: k
-    real :: e_1,e_2,z_cum=0,k_real,lambda
+    real :: e_1,e_2,z_cum=0,k_real,lambda,d,z_cum_old
     k_real=0
     if (e_1.eq.int(e_1).and.e_2.eq.int(e_2))then
        do k=0,Max_iter
@@ -614,6 +642,7 @@ contains
           z = z**int(e_1)+c+lambda*z**int(e_2)
 
           if (triangle)then
+             z_cum_old=z_cum
              call colour_triangle_ineq(z,c,z_old,z_cum,k)
           elseif (ave_an)then
              call colour_ave_angle(z,k_real)
@@ -630,6 +659,7 @@ contains
           z = z**int(e_1)+c+lambda*z**e_2
 
           if (triangle)then
+             z_cum_old=z_cum
              call colour_triangle_ineq(z,c,z_old,z_cum,k)
           elseif (ave_an)then
              call colour_ave_angle(z,k_real)
@@ -646,6 +676,7 @@ contains
           z = z**e_1+c+lambda*z**int(e_2)
 
           if (triangle)then
+             z_cum_old=z_cum
              call colour_triangle_ineq(z,c,z_old,z_cum,k)
           elseif (ave_an)then
              call colour_ave_angle(z,k_real)
@@ -660,6 +691,7 @@ contains
           z_old=z       
           z = z**e_1+c+lambda*z**e_2
           if (triangle)then
+             z_cum_old=z_cum
              call colour_triangle_ineq(z,c,z_old,z_cum,k)
           elseif (ave_an)then
              call colour_ave_angle(z,k_real)
@@ -672,11 +704,12 @@ contains
        end do
     end if
 
-    if (triangle)then
-       k_real=z_cum/real(k)
-
+  if (triangle)then
+       call colour_smooth_iter(k,z,d)
+       d=d-int(d)
+       k_real=d*z_cum+(1-d)*z_cum_old
        if (isnan(k_real))k_real=0
-
+       if (k.gt.max_iter-1)k_real=0
        z_cum=0
     elseif(ave_an)then
        k_real=k_real/real(k)

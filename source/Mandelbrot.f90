@@ -435,9 +435,15 @@ program Mandelbrot
   CALL COMMS_REDUCE_DOUBLE(par_time,tot_par_time,1,"MPI_SUM")
   CALL COMMS_REDUCE_DOUBLE(after_calc,after_calc_buff,1,"MPI_MAX")
 
-  
+
+  !FINALISE THE TRACE
+  call trace_exit("MANDELBROT")
+  call trace_finalise(rank,debug)
 
   CALL COMMS_REDUCE_REAL(comms_time,comms_time_buff,1,"MPI_SUM")
+
+
+
   comms_time=comms_time_buff/nprocs
 
 
@@ -482,8 +488,5 @@ program Mandelbrot
 
   CALL COMMS_FINALISE()
 
-  !FINALISE THE TRACE
-  call trace_exit("MANDELBROT")
-  call trace_finalise(rank,debug)
 
 end program Mandelbrot

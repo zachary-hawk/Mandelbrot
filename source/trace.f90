@@ -65,6 +65,7 @@ contains
     !==============================================================================!
     implicit none
     character(*), intent(in)  :: sub_name
+    character(len=30)         :: new_sub_name
     real                      :: time
 
     call CPU_TIME(time)
@@ -74,7 +75,9 @@ contains
     if (index(sub_name,"IO_").gt.0) io_start_time=io_start_time+time
     !set the things to the last array element
 
-    entry_array(size(entry_array))=sub_name
+    new_sub_name=sub_name!trace_string_to_lower(sub_name)
+    
+    entry_array(size(entry_array))=trim(new_sub_name)
     parent_array(size(parent_array))=parent_counter
     entry_time_array(size(entry_time_array))=time
 
@@ -118,6 +121,7 @@ contains
     !==============================================================================!
     implicit none
     character(*), intent(in)      :: sub_name
+    character(len=30)             :: new_sub_name
     real                          :: time
 
     call CPU_TIME(time)
@@ -125,9 +129,10 @@ contains
     if (index(sub_name,"COMMS").gt.0) comms_end_time=comms_end_time+time
     if (index(sub_name,"IO_").gt.0) io_end_time=io_end_time+time
 
-    !set the things to the last array element
+    !set the things to the last array elemen
+    new_sub_name=sub_name!trace_string_to_lower(sub_name)
 
-    exit_array(size(exit_array))=sub_name
+    exit_array(size(exit_array))=trim(new_sub_name)
     exit_time_array(size(exit_time_array))=time
 
     !increase the size of the array
@@ -180,7 +185,7 @@ contains
     parent_array(size(parent_array))=0
     !print*,parent_array
 
-    
+
     allocate(temp_real_array(1:size(entry_time_array)-1))
     temp_real_array(1:size(entry_time_array))=entry_time_array
     call  move_alloc(temp_real_array,entry_time_array)
@@ -202,7 +207,7 @@ contains
     comms_time=abs(comms_end_time-comms_start_time)
     io_time=abs(io_end_time-io_start_time)
 
-    
+
 
     if (allocated(temp_real_array)) deallocate(temp_real_array)
     if (allocated(temp_char_array)) deallocate(temp_char_array)
@@ -228,7 +233,7 @@ contains
     call_count=0
     start_time_sum=0
     end_time_sum=0
-    
+
 
     ! ALLOCATE THE UNIQUE SUBS ARRAY SO THERE ARE NO EMPTY CRAP AT THE END
 
@@ -364,6 +369,42 @@ contains
   end subroutine trace_sort
 
 
+  function trace_string_to_lower( string ) result (new)
+    !==============================================================================!
+    !                    T R A C E _  S T R I N G _ T O L O W E R                  !
+    !------------------------------------------------------------------------------! 
+    ! Functional subroutine used to lower the case of inputted strings to          !
+    ! prevent ambiguities in reading parameters.                                   !
+    !------------------------------------------------------------------------------!
+    ! Arguments:                                                                   !
+    !           None                                                               !
+    !------------------------------------------------------------------------------!
+    ! Result:                                                                      !
+    !           strin                                                              !
+    !------------------------------------------------------------------------------!
+    ! Author:   Z. Hawkhead  16/08/2019                                            !
+    !==============================================================================!
+    character(len=*)           :: string 
+
+    character(len=len(string)) :: new 
+
+    integer                    :: i 
+    integer                    :: k 
+    integer::length
+    call trace_entry("IO_STRING_TO_LOWER")
+    length = len(string)
+    new    = string
+    do i = 1,len(string)
+       k = iachar(string(i:i))
+       if ( k >= iachar('A') .and. k <= iachar('Z') ) then
+          k = k + iachar('a') - iachar('A')
+          new(i:i) = achar(k)
+       endif
+    enddo
+    call trace_exit("IO_STRING_TO_LOWER")
+  end function trace_string_to_lower
+  
+  
   subroutine trace_IO(rank,subs_list,time_list,call_list)
     !==============================================================================!
     !                               T R A C E _ I O                                !

@@ -33,21 +33,15 @@ contains
     real(kind=real128)              :: max,min
     !   call trace_entry("TRIANGLE_INEQ")
 
-
-
     max=abs(abs(z_old**e_default)+abs(c))
     min=abs(abs(z_old**e_default)-abs(c))
-
 
     if (max-min.lt.1.0e-3)then
        z_cum=z_cum
     else
-
-       z_cum=(z_cum+(abs(z)-min)/(max-min))
-
+       z_cum=(z_cum+((abs(z)-min)/(max-min)))
     end if
 
-    if (int.gt.max_iter-1)z_cum=0
     !    call trace_exit("TRIANGLE_INEQ")
   end subroutine colour_triangle_ineq
 
@@ -102,8 +96,9 @@ contains
     integer,intent(in)               :: k
     real,intent(inout)               :: colour
     !call trace_entry("SMOOTH_ITER")
-    colour=k-((log(abs(z))/log(bail_out))/log(e_default))
-    !    if (colour.gt.100)colour=100
+    colour=k+1+(1/log(e_default))*log(log(bail_out)/log(z))
+    if (isnan(colour))colour=0
+    !colour=k-((log(abs(z))/log(bail_out))/log(e_default))
     !call trace_exit("SMOOTH_ITER")
   end subroutine colour_smooth_iter
 
