@@ -15,8 +15,8 @@ ifeq ($(strip $(VAR)),)
 VAR="'Unknown'"
 endif
 #FC=mpif90
-FCFLAGSCPP= -cpp -O3 -funroll-loops -D arch=$(VAR) -D direc=$(DIR) -D cpu=$(CPU) -xHost -p 
-FCFLAGS=  -O3  -funroll-loops -xHost -p
+FCFLAGSCPP= -cpp  -D arch=$(VAR) -D direc=$(DIR) -D cpu=$(CPU)  -p -O3 -funroll-loops
+FCFLAGS= -O3  -funroll-loops -p
 BUILD_DIR ?= ./../build
 
 
@@ -44,13 +44,13 @@ colour.o:./colour.f90 IO.o trace.o
 
 
 IO.o:./IO.f90 COMMS_MPI.o trace.o
-	 $(MPI_FC) -c  ./IO.f90 $(FCFLAGSCPP)
+	 $(MPI_FC) -c  ./IO.f90 $(FCFLAGSCPP) -Dcompiler_kind=$(PRECISION)
 
 COMMS_MPI.o:./COMMS_MPI.f90 trace.o
 	 $(MPI_FC) -c  ./COMMS_MPI.f90 $(FCFLAGS)
 
 trace.o:./trace.f90
-	$(MPI_FC) -c ./trace.f90 $(FCFLAGS)
+	$(MPI_FC) -c ./trace.f90 $(FCFLAGS) 
 
 
 

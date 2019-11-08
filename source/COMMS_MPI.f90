@@ -33,9 +33,9 @@ contains
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
     call trace_entry("COMMS_BARRIER")
-    call trace_exit("COMMS_BARRIER")
-    call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
+    call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+    call trace_exit("COMMS_BARRIER")
   end subroutine COMMS_BARRIER
 
 

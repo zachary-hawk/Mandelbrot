@@ -438,7 +438,7 @@ program Mandelbrot
 
   !FINALISE THE TRACE
   call trace_exit("MANDELBROT")
-  call trace_finalise(rank,debug)
+  call trace_finalise(debug,rank)
 
   CALL COMMS_REDUCE_REAL(comms_time,comms_time_buff,1,"MPI_SUM")
 

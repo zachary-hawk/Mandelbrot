@@ -26,7 +26,7 @@ module trace
   real                                      :: io_time
   integer                                   :: no_subs
   integer                                   :: parent_counter=0
-  
+
 contains
 
   subroutine trace_init()
@@ -42,11 +42,17 @@ contains
     ! Author:   Z. Hawkhead  26/08/2019                                            !
     !==============================================================================!
     implicit none
-    allocate(entry_array(1))
-    allocate(entry_time_array(1))
-    allocate(exit_array(1))
-    allocate(exit_time_array(1))
-    allocate(parent_array(1))
+    integer   :: iostat
+    allocate(entry_array(1),stat=iostat)
+    if (iostat.ne.0) stop
+    allocate(entry_time_array(1),stat=iostat)
+    if (iostat.ne.0) stop
+    allocate(exit_array(1),stat=iostat)
+    if (iostat.ne.0) stop
+    allocate(exit_time_array(1),stat=iostat)
+    if (iostat.ne.0) stop
+    allocate(parent_array(1),stat=iostat)
+    if (iostat.ne.0) stop
   end subroutine trace_init
 
 
@@ -65,17 +71,18 @@ contains
     !==============================================================================!
     implicit none
     character(*), intent(in)  :: sub_name
-    character(len=30)         :: new_sub_name
+    character(30)                    :: new_sub_name
     real                      :: time
+    new_sub_name=trace_string_to_lower(sub_name)
 
     call CPU_TIME(time)
 
     ! check for comms
-    if (index(sub_name,"COMMS").gt.0) comms_start_time=comms_start_time+time
-    if (index(sub_name,"IO_").gt.0) io_start_time=io_start_time+time
+    if (index(new_sub_name,"comms").gt.0) comms_start_time=comms_start_time+time
+    if (index(new_sub_name,"io_").gt.0) io_start_time=io_start_time+time
     !set the things to the last array element
 
-    new_sub_name=sub_name!trace_string_to_lower(sub_name)
+
     
     entry_array(size(entry_array))=trim(new_sub_name)
     parent_array(size(parent_array))=parent_counter
@@ -121,16 +128,16 @@ contains
     !==============================================================================!
     implicit none
     character(*), intent(in)      :: sub_name
-    character(len=30)             :: new_sub_name
+    character(30)                    :: new_sub_name
     real                          :: time
-
+    new_sub_name=trace_string_to_lower(sub_name)
     call CPU_TIME(time)
     ! check for comms
     if (index(sub_name,"COMMS").gt.0) comms_end_time=comms_end_time+time
     if (index(sub_name,"IO_").gt.0) io_end_time=io_end_time+time
 
     !set the things to the last array elemen
-    new_sub_name=sub_name!trace_string_to_lower(sub_name)
+
 
     exit_array(size(exit_array))=trim(new_sub_name)
     exit_time_array(size(exit_time_array))=time
@@ -156,7 +163,7 @@ contains
 
 
 
-  subroutine trace_finalise(rank,debug)
+  subroutine trace_finalise(debug,rank)
     !==============================================================================!
     !                         T R A C E _ F I N A L I S E                          !
     !==============================================================================!
@@ -177,7 +184,7 @@ contains
     real,dimension(:),allocatable    :: sub_times
     integer,dimension(:),allocatable :: call_count
     character(len=50),dimension(:),allocatable :: unique_subs_trimmed
-    integer,intent(inout)            :: rank
+    integer,intent(inout),optional   :: rank
     ! TRIM DOWN THE ARRAYS
 
     !print*,entry_array
@@ -259,10 +266,11 @@ contains
 
     call trace_sort(sub_times,unique_subs_trimmed,call_count)
 
-
-
-    if(debug)call trace_IO(rank,unique_subs_trimmed,sub_times,call_count)
-
+    
+    if (present(rank))then
+       !print*,debug
+       if(debug)call trace_IO(rank,unique_subs_trimmed,sub_times,call_count)
+    end if
     deallocate(unique_subs_trimmed)
 
 
@@ -391,7 +399,7 @@ contains
     integer                    :: i 
     integer                    :: k 
     integer::length
-    call trace_entry("IO_STRING_TO_LOWER")
+!    call trace_entry("IO_STRING_TO_LOWER")
     length = len(string)
     new    = string
     do i = 1,len(string)
@@ -401,7 +409,7 @@ contains
           new(i:i) = achar(k)
        endif
     enddo
-    call trace_exit("IO_STRING_TO_LOWER")
+!    call trace_exit("IO_STRING_TO_LOWER")
   end function trace_string_to_lower
   
   
@@ -474,6 +482,50 @@ contains
   end subroutine trace_IO
 
 
+  subroutine trace_stack(err_file)
+    implicit none
+    integer, intent(in)    :: err_file
+    character(len=30)      :: current_sub
+    character(len=30),allocatable,dimension(:) :: stack
+    character(len=30),allocatable,dimension(:) :: temp_stack
+    integer                :: i,iostat,current_parents
+
+    !Do some setting up, 
+    current_sub=entry_array(size(entry_array)-1)
+    call trace_exit(current_sub)
+    call trace_finalise(.FALSE.)
+    current_parents=parent_array(size(parent_array)-1)
+    allocate(stack(1),stat=iostat)
+    if (iostat.ne.0) stop
+    !allocate(temp_stack(1),stat=iostat)
+    !if (iostat.ne.0) stop
+
+    stack(1)=trim(current_sub)
+
+
+
+    do i=1,size(parent_array)
+       if (parent_array(size(parent_array)-i).lt.current_parents)then
+          current_parents=parent_array(size(parent_array)-i)
+          allocate(temp_stack(1:size(stack)+1))
+          temp_stack(1:size(stack))=stack
+          call  move_alloc(temp_stack,stack)
+
+          stack(size(stack))=entry_array(size(parent_array)-i)
+          
+       end if
+    end do
+    write(err_file,*) "Stack trace:"
+    do i=1,size(stack)
+       write(err_file,'(4x,A)')stack(i)
+
+    end do
+
+    if (allocated(temp_stack))deallocate(temp_stack)
+
+  end subroutine trace_stack
+
+  
   subroutine trace_parents(file_id)
     implicit none
     integer :: file_id,temp_int,i,width,width2

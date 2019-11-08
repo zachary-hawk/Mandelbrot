@@ -15,12 +15,14 @@ MPI_FC:=mpif90
 
 SERIAL_FC:=ifort
 
+PRECISION:=real32
 
 ########################################
 
 export COMMS_ARCH
 export MPI_FC
 export SERIAL_FC
+export PRECISION
 
 ifeq ($(COMMS_ARCH),mpi)
 

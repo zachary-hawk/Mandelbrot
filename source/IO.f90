@@ -9,7 +9,8 @@
 !=============================================================================!
 module IO
   use iso_fortran_env
-  use comms , only : rank,max_version_length,comms_arch,COMMS_VERSION,COMMS_LIBRARY_VERSION,COMMS_FINALISE
+  use comms , only : rank,max_version_length,comms_arch,COMMS_VERSION &
+       & ,COMMS_LIBRARY_VERSION,COMMS_FINALISE,comms_abort,comms_barrier
   use trace
   implicit none
 !!!!!! DEFINE THE DEFAULTS !!!!!!!!!
@@ -24,10 +25,6 @@ module IO
   real,parameter   :: pi=3.141592654             
   integer          :: buddah_param=10000
   integer          :: stdout
-  real(real64)     :: lower_X=-2.0
-  real(real64)     :: upper_X=0.5
-  real(real64)     :: lower_Y=-1.25
-  real(real64)     :: upper_Y=1.25
   real             :: zoom_factor=1
   logical          :: lookfor_parallel=.FALSE.
   logical          :: lookfor_data=.TRUE.
@@ -36,7 +33,6 @@ module IO
   logical          :: burn_for_carrying=.FALSE.
   logical          :: b_for_carrying=.FALSE.
   logical          :: lookfor_cont=.FALSE.
-  logical          :: lookfor_warnings=.FALSE.
   logical          :: newt_for_carrying=.FALSE.
   logical          :: continuation=.FALSE.
   logical          :: file_exist
@@ -57,7 +53,12 @@ module IO
   character(81)    :: parser_version="Mandelbrot v.3.0, Z.Hawkhead" 
   character(100)   :: info="Parallel code for calculating the Mandelbrot Set"
   character(100)   :: DATE,TIME,compiler,arch_string,version,cpuinfo
-  integer,parameter:: complex_kind=real128
+  integer,parameter:: complex_kind=compiler_kind
+  real(complex_kind):: lower_X=-2.0
+  real(complex_kind):: upper_X=0.5
+  real(complex_kind):: lower_Y=-1.25
+  real(complex_kind):: upper_Y=1.25
+
   complex(complex_kind):: centre=(0,0)
 
   !  public :: triangle,ave_ang
@@ -86,6 +87,9 @@ contains
     character(len=max_version_length) :: mpi_c_version
     character(len=3) :: MPI_version_num
     call trace_entry("IO_HEADER")
+
+
+
     if (comms_arch.eq."MPI")then
        call COMMS_LIBRARY_VERSION(mpi_c_version)
        call COMMS_VERSION(min_mpi,maj_mpi)
@@ -95,11 +99,6 @@ contains
        min_char=scan(mpi_c_version,".")
        !print*, mpi_c_version,mpi_version_num
     end if
-
-
-
-
-
 
 #ifdef __INTEL_COMPILER
 #define compiler "Intel Compiler"
@@ -168,7 +167,7 @@ contains
     integer,intent(in)              :: nprocs
     real,intent(in)                 :: memory_buffer,disk_stor
     character(*),intent(in)         :: file_name
-    
+
     call trace_entry("IO_FILE")
     call date_and_time(b(1), b(2), b(3), d_t)
     months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
@@ -316,11 +315,6 @@ contains
     write(stdout,2003) "Estimated disk storage (MB)",disk_stor
 
     write(stdout,*)
-    if(lookfor_warnings)then
-       write(stdout,*) "** Warnings Present, Check param.mand"
-       write(stdout,*)
-    end if
-
 
     if (do_nova)newt_for_carrying=.true.
 
@@ -480,7 +474,7 @@ contains
                 light=.true.
                 smooth=.false.
              else
-                call io_warning(name,val,lookfor_warnings)
+                call io_errors("Error in I/O read from "//file_name//".mand: "//trim(name))
              end if
           elseif (name.eq."zoom_factor")then
              call io_int_to_real(val)
@@ -503,7 +497,7 @@ contains
              elseif (val.eq."false".or.val.eq."False")then
                 lookfor_parallel=.FALSE.
              else
-                call io_warning(name,val,lookfor_warnings)
+                call io_errors("Error in I/O read from "//file_name//".mand: "//trim(name))
              end if
           elseif(name.eq."continuation")then
              if (val.eq."true".or.val.eq."True")then
@@ -511,7 +505,7 @@ contains
              elseif (val.eq."false".or.val.eq."False")then
                 continuation=.FALSE.
              else
-                call io_warning(name,val,lookfor_warnings)
+                call io_errors("Error in I/O read from "//file_name//".mand: "//trim(name))
              end if
           elseif(name.eq."write_data")then
              if(val.eq."true".or.val.eq."True")then
@@ -519,7 +513,7 @@ contains
              elseif (val.eq."false".or.val.eq."False")then
                 lookfor_data=.FALSE.
              else
-                call io_warning(name,val,lookfor_warnings)
+                 call io_errors("Error in I/O read from "//file_name//".mand: "//trim(name))
              end if
           elseif(name.eq."write_efficiency")then
              if(val.eq."true".or.val.eq."True")then
@@ -527,7 +521,7 @@ contains
              elseif (val.eq."false".or.val.eq."False")then
                 lookfor_eff=.FALSE.
              else
-                call io_warning(name,val,lookfor_warnings)
+                call io_errors("Error in I/O read from "//file_name//".mand: "//trim(name))
              end if
           elseif(name.eq."calc_type")then
              if(val.eq."buddahbrot")then
@@ -560,14 +554,14 @@ contains
                 newt_for_carrying=.FALSE.
                 do_mandelbrot=.true.
              else
-                call io_warning(name,val,lookfor_warnings)
+                call io_errors("Error in I/O read from "//file_name//".mand: "//trim(name))
              end if
           elseif (name(1:1).eq."#".or.name(1:1).eq."!")then
              cycle
 
-          else
-             lookfor_warnings=.TRUE.
-             write(*,*) "Warning: Unknown parameter- ", name
+          !else
+          !   lookfor_warnings=.TRUE.
+          !   write(*,*) "Warning: Unknown parameter- ", name
 
           end if
        end do
@@ -839,7 +833,7 @@ contains
     endif
     call COMMS_FINALISE()
     call trace_exit("IO_PRINT_DRY")
-    call trace_finalise(rank,debug)
+    call trace_finalise(debug,rank)
     stop
 
   end subroutine io_print_dry
@@ -880,14 +874,19 @@ contains
     !==============================================================================!
     implicit none
     character(*)::message
+    !if (rank.eq.0)then
+       write(*,*) "Called I/O Error"
+       open(20,file="err.mand",status="unknown")
+       write(20,*) "Error: ",trim(message)
 
-    write(*,*) "Called I/O Error"
-    open(20,file="err.mand",status="unknown",access="append")
-    write(20,*) "Error: ",trim(message)
-    close(20)
+       call trace_stack(20)
+       print*,rank
+       call comms_barrier()
+       print*,rank
+       close(20)
 
-    stop
-
+       stop
+    !end if
   end subroutine io_errors
 
 
@@ -970,13 +969,20 @@ contains
     implicit none
     logical            :: zoom_check
     real(complex_kind) :: width,height
+    integer            :: max_steps=10000
+
     call trace_entry("IO_ZOOM")
     width=upper_x-lower_x
     height=upper_y-lower_y
 
     if (zoom_check) then
-       width=width/zoom_factor
-       height=height/zoom_factor
+       width=width*exp(-100*zoom_factor/(max_steps-1))
+       !width=width/zoom_factor
+       height=height*exp(-100*zoom_factor/(max_steps-1))
+       !height=height/zoom_factor
+       !print*,1/exp(-100*zoom_factor/(max_steps-1))
+
+
        lower_x=real(centre,complex_kind)-width/2
        upper_x=real(centre,complex_kind)+width/2
        lower_y=aimag(centre)-height/2
@@ -1014,7 +1020,7 @@ contains
           exit
        end if
     end do
-    
+
     if (found_e)then
        temp=char(1:i-1)
        call io_int_to_real(temp)
