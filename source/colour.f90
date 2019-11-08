@@ -146,8 +146,9 @@ contains
     real,intent(inout)                   :: colour_ref
 
     colour_ref=colour_ref+exp(-abs(z))
+    if (isnan(colour_ref)) colour_ref=000
   end subroutine colour_exponential
-
+  
   subroutine colour_light(z,k_real,i,dir)
     !==============================================================================!
     !                           C O L O U R _ L I G H T                            !

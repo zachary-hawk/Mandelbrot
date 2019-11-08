@@ -422,8 +422,9 @@ program Mandelbrot
      !if(debug)write(stdout,*)set
      write(2)set
      close(2)
+     !if(debug) print*,set
   end if
-
+  
   finish = COMMS_WTIME()
   call COMMS_REDUCE_DOUBLE(start,inp_st,1,"MPI_MIN")
   CALL COMMS_REDUCE_DOUBLE(finish,inp_fn,1,"MPI_MAX")
