@@ -1,10 +1,10 @@
-!---- File documented by Fortran Documenter, Z.Hawkhead
+!!---- File documented by Fortran Documenter, Z.Hawkhead
 module colours
   use IO
-  use iso_fortran_env
+  use iso_fortran_env, only: real64
   use trace
   implicit none
-
+  !integer,parameter :: dp=real64
 
 contains 
 
@@ -27,10 +27,10 @@ contains
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
     implicit none
-    complex(complex_kind),intent(in)     :: z,c,z_old
+    complex(dp),intent(in)     :: z,c,z_old
     integer,intent(in)              :: int
-    real,intent(inout)              :: z_cum
-    real(kind=real128)              :: max,min
+    real(dp),intent(inout)              :: z_cum
+    real(kind=dp)              :: max,min
     !   call trace_entry("TRIANGLE_INEQ")
 
     max=abs(abs(z_old**e_default)+abs(c))
@@ -64,12 +64,12 @@ contains
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
     implicit none
-    complex(complex_kind),intent(in)     :: z
-    real,intent(inout)                   :: theta
+    complex(dp),intent(in)     :: z
+    real(dp),intent(inout)                   :: theta
     !    call trace_entry("AVE_ANGLE")
-    if (abs(real(z)).gt.0)then
+    if (abs(real(z,dp)).gt.0)then
 
-       theta=theta+atan(aimag(z)/real(z))
+       theta=theta+atan(aimag(z)/real(z,dp))
     else
        theta=theta
     end if
@@ -92,12 +92,13 @@ contains
     ! Author:   Z. Hawkhead  01/10/2019                                            !
     !==============================================================================!
     implicit none
-    complex(complex_kind),intent(in) :: z
+    complex(dp),intent(in) :: z
     integer,intent(in)               :: k
-    real,intent(inout)               :: colour
+    real(dp),intent(inout)               :: colour
     !call trace_entry("SMOOTH_ITER")
-    colour=k+1+(1/log(e_default))*log(log(bail_out)/log(z))
-    if (isnan(colour))colour=0
+    colour=k+1.0_dp+(1.0_dp/log(e_default))*log(log(bail_out)/log(z))
+
+    if (isnan(colour))colour=0.0_dp
     !colour=k-((log(abs(z))/log(bail_out))/log(e_default))
     !call trace_exit("SMOOTH_ITER")
   end subroutine colour_smooth_iter
@@ -118,12 +119,12 @@ contains
     implicit none
 
     integer,intent(in)               :: k
-    real,intent(inout)               :: colour
+    real(dp),intent(inout)               :: colour
 
     if (k.eq.max_iter+1)then
-       colour=1
+       colour=1.0_dp
     else
-       colour=0
+       colour=0.0_dp
     end if
 
   end subroutine colour_set
@@ -142,8 +143,8 @@ contains
     ! Author:   Z. Hawkhead  01/10/2019                                            !
     !==============================================================================!
     implicit none
-    complex(complex_kind),intent(in)     :: z
-    real,intent(inout)                   :: colour_ref
+    complex(dp),intent(in)     :: z
+    real(dp),intent(inout)                   :: colour_ref
 
     colour_ref=colour_ref+exp(-abs(z))
     if (isnan(colour_ref)) colour_ref=000
@@ -158,21 +159,21 @@ contains
     !------------------------------------------------------------------------------!
     ! Arguments:                                                                   !
     !           z,                 intent :: in                                    !
-    !           k_real,            intent :: inout                                 !
+    !           k_real(dp),            intent :: inout                                 !
     !           i,                 intent :: in                                    !
     !           dir,               intent :: inout                                 !
     !------------------------------------------------------------------------------!
     ! Author:   Z. Hawkhead  01/10/2019                                            !
     !==============================================================================!
     implicit none
-    complex(complex_kind),intent(in)     :: z
-    real,intent(inout)                   :: k_real
+    complex(dp),intent(in)     :: z
+    real(dp),intent(inout)                   :: k_real
     integer,intent(in)                   :: i
 
-    complex(complex_kind)                :: v,u
-    complex(complex_kind)                :: dc=(1,0)
-    complex(complex_kind),intent(inout)  :: dir
-    real                                 :: h=1.5
+    complex(dp)                :: v,u
+    complex(dp)                :: dc=(1,0)
+    complex(dp),intent(inout)  :: dir
+    real(dp)                                 :: h=1.5
     k_real=0
     v=exp(cmplx(0,1)*light_angle*2*pi/360)
 
@@ -185,11 +186,12 @@ contains
        u = u/abs(u)
 
        k_real = real(u)*real(v) + aimag(u)*aimag(v) + h
-       k_real = k_real/(1+h) 
+       k_real = k_real/(1.0_dp+h) 
 
-       if (k_real.lt.0) k_real=0
+       if (k_real.lt.0) k_real=0.0_dp
     end if
   end subroutine colour_light
 
+  
 
 end module colours

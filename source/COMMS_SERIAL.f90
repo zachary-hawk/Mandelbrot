@@ -9,13 +9,64 @@
 !=============================================================================! 
 module COMMS
   !use mpi
+  use iso_fortran_env,only: real64
   use trace
   implicit none
 
-  integer :: ierr
-  integer :: rank,nprocs
-  character(6) :: comms_arch="SERIAL"
-  integer :: max_version_length=10
+  integer                              :: ierr
+  integer,parameter                    :: max_version_length=10
+  integer,private,parameter :: dp=real64
+  ! Some of the stuff i'll need, gloabal
+  integer,public,save                  :: rank
+  integer,public,save                  :: nprocs
+  logical,public,save                  :: on_root_node=.true.
+  
+  character(6)                         :: comms_arch="SERIAL"
+  integer,public,save,dimension(:,:),allocatable :: comms_scheme_array
+
+
+  
+  interface comms_send
+     module procedure COMMS_SEND_INT
+     module procedure COMMS_SEND_REAL
+     module procedure COMMS_SEND_DOUBLE
+     module procedure COMMS_SEND_INT_ARRAY
+     module procedure COMMS_SEND_REAL_ARRAY
+     module procedure COMMS_SEND_DOUBLE_ARRAY
+  end interface comms_send
+
+  interface comms_recv
+     module procedure COMMS_RECV_INT
+     module procedure COMMS_RECV_REAL
+     module procedure COMMS_RECV_DOUBLE
+     module procedure COMMS_RECV_INT_ARRAY
+     module procedure COMMS_RECV_REAL_ARRAY
+     module procedure COMMS_RECV_DOUBLE_ARRAY
+  end interface 
+
+
+  interface comms_reduce
+     module procedure COMMS_REDUCE_INT
+     module procedure COMMS_REDUCE_REAL
+     module procedure COMMS_REDUCE_DOUBLE
+     module procedure COMMS_REDUCE_INT_ARRAY
+     module procedure COMMS_REDUCE_REAL_ARRAY
+     module procedure COMMS_REDUCE_DOUBLE_ARRAY
+     module procedure COMMS_REDUCE_LOG
+  end interface comms_reduce
+  
+  interface comms_bcast
+     module procedure COMMS_BCAST_INT
+     module procedure COMMS_BCAST_REAL
+     module procedure COMMS_BCAST_DOUBLE
+     module procedure COMMS_BCAST_INT_ARRAY
+     module procedure COMMS_BCAST_REAL_ARRAY
+     module procedure COMMS_BCAST_DOUBLE_ARRAY
+   end interface
+
+
+
+
 contains
 
   subroutine COMMS_BARRIER()
@@ -177,7 +228,7 @@ contains
     integer,intent(inout) :: rank
     call trace_entry("COMMS_RANK")
     rank=0
-
+    call trace_exit("COMMS_RANK")
   end subroutine COMMS_RANK
 
   subroutine COMMS_SIZE(nprocs)
@@ -258,7 +309,7 @@ contains
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
     integer:: count,dest_rank,tag
-    double precision :: send_buff
+    real(dp) :: send_buff
     call trace_entry("COMMS_SEND_DOUBLE")
 
     call trace_exit("COMMS_SEND_DOUBLE")
@@ -281,7 +332,7 @@ contains
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
     integer:: count,dest_rank,tag
-    integer,dimension(count) :: send_buff
+    integer,dimension(1:count) :: send_buff
     call trace_entry("COMMS_SEND_INT_ARRAY")
 
     call trace_exit("COMMS_SEND_INT_ARRAY")
@@ -302,7 +353,7 @@ contains
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
     integer:: count,dest_rank,tag
-    real,dimension(count) :: send_buff
+    real,dimension(1:count) :: send_buff
     call trace_entry("COMMS_SEND_REAL_ARRAY")
 
     call trace_exit("COMMS_SEND_REAL_ARRAY")
@@ -323,7 +374,7 @@ contains
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
     integer:: count,dest_rank,tag
-    double precision,dimension(count) :: send_buff
+    real(dp),dimension(1:count) :: send_buff
     call trace_entry("COMMS_SEND_DOUBLE_ARRAY")
 
     call trace_exit("COMMS_SEND_DOUBLE_ARRAY")
@@ -445,7 +496,7 @@ contains
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
     integer:: count,source,tag
-    double precision ,intent(inout) :: recv_buff
+    real(dp) ,intent(inout) :: recv_buff
     call trace_entry("COMMS_RECV_DOUBLE")
 
     call trace_exit("COMMS_RECV_DOUBLE")
@@ -470,7 +521,7 @@ contains
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
     integer:: count,source,tag
-    integer,dimension(count),intent(inout) :: recv_buff
+    integer,dimension(1:count),intent(inout) :: recv_buff
 
   end subroutine COMMS_RECV_INT_ARRAY
 
@@ -489,7 +540,7 @@ contains
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
     integer :: count,source,tag
-    real,dimension(count),intent(inout) :: recv_buff
+    real,dimension(1:count),intent(inout) :: recv_buff
     call trace_entry("COMMS_RECV_REAL_ARRAY")
 
     call trace_exit("COMMS_RECV_REAL_ARRAY")
@@ -510,7 +561,7 @@ contains
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
     integer :: count,source,tag
-    double precision,dimension(count),intent(inout) :: recv_buff
+    real(dp),dimension(1:count),intent(inout) :: recv_buff
     call trace_entry("COMMS_RECV_DOUBLE_ARRAY")
 
     call trace_exit("COMMS_RECV_DOUBLE_ARRAY")
@@ -545,6 +596,18 @@ contains
 
 
   !Reduce Routines
+
+  subroutine COMMS_REDUCE_LOG(send_buff,recv_buff,count,OP)
+    integer:: count
+    logical,intent(inout) :: recv_buff
+    logical :: send_buff
+    character(*) :: OP
+
+    call trace_entry("COMMS_REDUCE_LOG")
+        recv_buff=send_buff
+    call trace_exit("COMMS_REDUCE_LOG")
+  end subroutine COMMS_REDUCE_LOG
+
 
   subroutine COMMS_REDUCE_INT(send_buff,recv_buff,count,OP)
     !==============================================================================!
@@ -611,8 +674,8 @@ contains
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
     integer:: count
-    double precision,intent(inout) :: recv_buff
-    double precision :: send_buff
+    real(dp),intent(inout) :: recv_buff
+    real(dp) :: send_buff
     character(*) :: OP
 
     call trace_entry("COMMS_REDUCE_DOUBLE")
@@ -640,13 +703,12 @@ contains
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
     integer:: count
-    integer,dimension(count),intent(inout) :: recv_buff
-    integer,dimension(count) :: send_buff
+    integer,dimension(1:count),intent(inout) :: recv_buff
+    integer,dimension(1:count) :: send_buff
     character(*) :: OP
 
     call trace_entry("COMMS_REDUCE_INT_ARRAY")
-    
-
+    recv_buff=send_buff
     call trace_exit("COMMS_REDUCE_INT_ARRAY")
   end subroutine COMMS_REDUCE_INT_ARRAY
 
@@ -666,8 +728,8 @@ contains
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
     integer:: count
-    real,dimension(count),intent(inout) :: recv_buff
-    real,dimension(count) :: send_buff
+    real,dimension(1:count),intent(inout) :: recv_buff
+    real,dimension(1:count) :: send_buff
     character(*) :: OP
     call trace_entry("COMMS_REDUCE_REAL_ARRAY")
     recv_buff=send_buff
@@ -690,8 +752,8 @@ contains
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
     integer:: count
-    double precision,dimension(count),intent(inout) :: recv_buff
-    double precision,dimension(count) :: send_buff
+    real(dp),dimension(1:count),intent(inout) :: recv_buff
+    real(dp),dimension(1:count) :: send_buff
     character(*) :: OP
     call trace_entry("COMMS_REDUCE_DOUBLE_ARRAY")
     recv_buff=send_buff
@@ -759,7 +821,7 @@ contains
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
     integer :: count
-    double precision :: start_buff
+    real(dp) :: start_buff
     call trace_entry("COMMS_BCAST_DOUBLE")
 
     call trace_exit("COMMS_BCAST_DOUBLE")
@@ -779,7 +841,7 @@ contains
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
     integer :: count
-    integer,dimension(count) :: start_buff
+    integer,dimension(1:count) :: start_buff
     call trace_entry("COMMS_BCAST_INT_ARRAY")
 
     call trace_exit("COMMS_BCAST_INT_ARRAY")
@@ -799,7 +861,7 @@ contains
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
     integer :: count
-    real,dimension(count) :: start_buff
+    real,dimension(1:count) :: start_buff
 
   end subroutine COMMS_BCAST_REAL_ARRAY
 
@@ -807,7 +869,7 @@ contains
     !==============================================================================!
     !               C O M M S _ B C A S T _ D O U B L E _ A R R A Y                !
     !==============================================================================!
-    ! Subroutine wrapper for broadcasting array of double precision data from      !
+    ! Subroutine wrapper for broadcasting array of real(dp) data from      !
     ! the root to all children processes.                                          !
     !------------------------------------------------------------------------------!
     ! Arguments:                                                                   !
@@ -817,7 +879,7 @@ contains
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
     integer :: count
-    double precision,dimension(count) :: start_buff
+    real(dp),dimension(1:count) :: start_buff
     call trace_entry("COMMS_BCAST_DOUBLE_ARRAY")
 
     call trace_exit("COMMS_BCAST_DOUBLE_ARRAY")
@@ -840,7 +902,7 @@ contains
     !------------------------------------------------------------------------------!
     ! Author:   Z. Hawkhead  16/08/2019                                            !
     !==============================================================================!
-    double precision :: time
+    real(dp) :: time
     !
     !call trace_entry("COMMS_WTIME")
    
@@ -848,5 +910,26 @@ contains
 
     !call trace_exit("COMMS_WTIME")
   end function COMMS_WTIME
+
+  subroutine COMMS_SCHEME(N)
+    implicit none
+    integer,intent(in) :: N
+    integer :: n_par,U_par
+    integer, dimension(:),allocatable :: split
+    integer :: i,j,k
+
+    call trace_entry("comms_scheme")
+
+    ! allocate the scheme array                                                                                                                                                                             
+
+    allocate(comms_scheme_array(0:nprocs,1:4))
+
+    comms_scheme_array(0,1)=1
+    comms_scheme_array(0,2)=N
+    comms_scheme_array(0,3)=1
+    comms_scheme_array(0,4)=N
+    call trace_exit("comms_scheme")
+  end subroutine COMMS_SCHEME
+
 
 end module COMMS

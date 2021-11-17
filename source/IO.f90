@@ -8,7 +8,7 @@
 !                        author: Z. Hawkhead                                  !
 !=============================================================================!
 module IO
-  use iso_fortran_env
+  use iso_fortran_env,only: compiler_version
   use comms , only : rank,max_version_length,comms_arch,COMMS_VERSION &
        & ,COMMS_LIBRARY_VERSION,COMMS_FINALISE,comms_abort,comms_barrier
   use trace
@@ -16,13 +16,16 @@ module IO
 !!!!!! DEFINE THE DEFAULTS !!!!!!!!!
   integer          :: N=1000
   integer          :: Max_iter=50
-  real             :: relaxation=1
-  real             :: e_default=2.
-  real             :: e_rational=-2
-  real             :: lambda=-0.35
-  real             :: bail_out=1.e5
-  real             :: light_angle=45
-  real,parameter   :: pi=3.141592654             
+  real(dp)             :: relaxation=1
+  real(dp)             :: e_default=2.
+  real(dp)             :: e_rational=-2
+  real(dp)             :: lambda=-0.35
+  real(dp)             :: bail_out=1.e5
+  real(dp)             :: light_angle=45
+  real(dp),parameter   :: pi=3.141592654
+  complex(dp),parameter     :: cmplx_i=(0.0_dp,1.0_dp)
+  complex(dp),parameter     :: cmplx_1=(1.0_dp,1.0_dp)
+  complex(dp),parameter     :: cmplx_0=(0.0_dp,0.0_dp)
   integer          :: buddah_param=10000
   integer          :: stdout
   real             :: zoom_factor=1
@@ -53,13 +56,13 @@ module IO
   character(81)    :: parser_version="Mandelbrot v.3.0, Z.Hawkhead" 
   character(100)   :: info="Parallel code for calculating the Mandelbrot Set"
   character(100)   :: DATE,TIME,compiler,arch_string,version,cpuinfo
-  integer,parameter:: complex_kind=compiler_kind
-  real(complex_kind):: lower_X=-2.0
-  real(complex_kind):: upper_X=0.5
-  real(complex_kind):: lower_Y=-1.25
-  real(complex_kind):: upper_Y=1.25
-
-  complex(complex_kind):: centre=(0,0)
+  !integer,parameter:: complex_kind=compiler_kind
+  real(dp):: lower_X=-2.0
+  real(dp):: upper_X=0.5
+  real(dp):: lower_Y=-1.25
+  real(dp):: upper_Y=1.25
+  complex(dp),dimension(:),allocatable :: roots
+  complex(dp):: centre=(0,0)
 
   !  public :: triangle,ave_ang
 
@@ -138,7 +141,7 @@ contains
     write(stdout,*) "Compiled with ",compiler," ",Trim(version), " on ", __DATE__, " at ",__TIME__
     write(stdout,*) "Compiled for CPU: ",trim(cpuinfo)
     write(stdout,*) "Compiled for system: ",trim(arch_string)
-    write(stdout,"(1x,A,i3)") "Complex precision: ",8*complex_kind
+    write(stdout,"(1x,A,i3)") "Complex precision: ",8*dp
     write(stdout,*) "Communications architechture: ",trim(comms_arch)
     if (comms_arch.eq."MPI")then
        write(stdout,*) "MPI Version: ",mpi_c_version(1:min_char+1)
@@ -165,7 +168,7 @@ contains
     integer                         :: d_t(8)    
     character*10                    :: b(3)
     integer,intent(in)              :: nprocs
-    real,intent(in)                 :: memory_buffer,disk_stor
+    real(dp),intent(in)                 :: memory_buffer,disk_stor
     character(*),intent(in)         :: file_name
 
     call trace_entry("IO_FILE")
@@ -175,7 +178,7 @@ contains
     if(lookfor_data)then
        open(unit=2,file="data.mand",form="UNFORMATTED")
     end if
-    open(unit=stdout,file="out.mand",RECL=8192,form="FORMATTED")
+    open(unit=stdout,file="out.mand",RECL=8192,form="FORMATTED",access="APPEND",status="UNKNOWN")
     call io_header()
 
     write(stdout,1000) months(d_t(2)),d_t(3),d_t(1),d_t(5),d_t(6),d_t(7),d_t(8)
@@ -337,7 +340,7 @@ contains
     !==============================================================================!
     character(*),intent(in)      :: file_name
 
-    integer                      :: i,counter,j,stat=0,max_stat
+    integer                      :: i,counter,j,stat=0,max_stat=0,skip
     character(len=30)            :: chara,name,val,z_re_char,z_im_char,junk
     character(len=5)             :: out_1,out_2
     logical                      :: change_ux=.FALSE.
@@ -352,10 +355,6 @@ contains
     logical                      :: temp_logical
     call trace_entry("IO_READ_PARAMETERS")
 
-
-
-
-
     inquire(file=file_name//".mand", EXIST=file_exist)
     if (file_exist)then 
        open(unit=24,file=file_name//".mand",status="OLD",access="stream",form="formatted")
@@ -363,7 +362,20 @@ contains
        do while (max_stat .eq. 0) 
 
           read(24,'(A)',IOSTAT=max_stat)junk
-          if (junk(1:1).eq."!")cycle
+          
+          if (junk(1:1).eq."!" .or. junk(1:1).eq."#")cycle
+
+          if (index(IO_STRING_TO_LOWER(junk),"%block").gt.0)then
+             if (index(IO_STRING_TO_LOWER(junk),"roots").gt.0)then
+                call io_block_roots(skip)
+                do i=1,skip
+                   read(24,'(A)',IOSTAT=max_stat)junk
+                end do
+             else
+                call io_errors("Error in I/O: Unknown Block")
+             end if
+          end if
+          
           do j=1,len_trim(junk)
 
              if (junk(j:j).eq.':' .or. junk(j:j).eq."=")then
@@ -376,7 +388,7 @@ contains
              endif
           enddo
 
-
+          
 
           name=io_string_to_lower(name)
           val=io_string_to_lower(val)
@@ -384,6 +396,8 @@ contains
           name=adjustl(name)
           val=adjustl(val)
 
+
+          
           if (adjustl(name).eq."grid_size")then
              call io_scientific_corr(val)
              read(val,*,iostat=stat)N
@@ -450,11 +464,7 @@ contains
              if (stat.ne.0)call io_errors("Error in I/O read from "//file_name//".mand: "//trim(val))
              change_uy=.true.       
           elseif (name.eq."debug")then
-             if(val.eq."true")then
-                debug=.true.
-             elseif(val.eq."false")then
-                debug=.false.
-             end if
+             read(val,*,iostat=stat)debug
           elseif (name.eq."colouring_method")then
              if (val.eq."triangle".or.val.eq."tia")then 
                 triangle=.true.
@@ -474,7 +484,7 @@ contains
                 light=.true.
                 smooth=.false.
              else
-                call io_errors("Error in I/O read from "//file_name//".mand: "//trim(name))
+                call io_errors("Error in I/O read: Unknown parameter '"//trim(val)//"' for "//trim(name))
              end if
           elseif (name.eq."zoom_factor")then
              call io_int_to_real(val)
@@ -497,7 +507,7 @@ contains
              elseif (val.eq."false".or.val.eq."False")then
                 lookfor_parallel=.FALSE.
              else
-                call io_errors("Error in I/O read from "//file_name//".mand: "//trim(name))
+                call io_errors("Error in I/O read: Unknown parameter '"//trim(val)//"' for "//trim(name))
              end if
           elseif(name.eq."continuation")then
              if (val.eq."true".or.val.eq."True")then
@@ -505,7 +515,7 @@ contains
              elseif (val.eq."false".or.val.eq."False")then
                 continuation=.FALSE.
              else
-                call io_errors("Error in I/O read from "//file_name//".mand: "//trim(name))
+                call io_errors("Error in I/O read: Unknown parameter '"//trim(val)//"' for "//trim(name))
              end if
           elseif(name.eq."write_data")then
              if(val.eq."true".or.val.eq."True")then
@@ -513,7 +523,7 @@ contains
              elseif (val.eq."false".or.val.eq."False")then
                 lookfor_data=.FALSE.
              else
-                 call io_errors("Error in I/O read from "//file_name//".mand: "//trim(name))
+                 call io_errors("Error in I/O read: Unknown parameter '"//trim(val)//"' for "//trim(name))
              end if
           elseif(name.eq."write_efficiency")then
              if(val.eq."true".or.val.eq."True")then
@@ -521,9 +531,9 @@ contains
              elseif (val.eq."false".or.val.eq."False")then
                 lookfor_eff=.FALSE.
              else
-                call io_errors("Error in I/O read from "//file_name//".mand: "//trim(name))
+                call io_errors("Error in I/O read: Unknown parameter '"//trim(val)//"' for "//trim(name))
              end if
-          elseif(name.eq."calc_type")then
+          elseif(name.eq."task")then
              if(val.eq."buddahbrot")then
                 b_for_carrying=.TRUE.
                 do_mandelbrot=.false.
@@ -554,7 +564,7 @@ contains
                 newt_for_carrying=.FALSE.
                 do_mandelbrot=.true.
              else
-                call io_errors("Error in I/O read from "//file_name//".mand: "//trim(name))
+                call io_errors("Error in I/O read: Unknown parameter '"//trim(val)//"' for "//trim(name))
              end if
           elseif (name(1:1).eq."#".or.name(1:1).eq."!")then
              cycle
@@ -619,6 +629,13 @@ contains
        if (zoom)&
             call io_errors("Error in I/O, Cannot change extent in a zoom calculation")
     endif
+
+    if (.not.allocated(roots))then
+       allocate(roots(1:3))
+       roots(1)=exp(cmplx_i*2.0_dp*pi)
+       roots(2)=exp(cmplx_i*2.0_dp*pi*1.0_dp/3.0_dp)
+       roots(3)=exp(cmplx_i*2.0_dp*pi*2.0_dp/3.0_dp)
+    end if
     call trace_exit("IO_READ_PARAMETERS")
 
     if (zoom.and.debug) max_iter=max_iter+zoom_factor
@@ -677,7 +694,7 @@ contains
 78  format(1x,A16,5x,a,5x,A)
 
 
-    write(*,73) adjustl("CALC_TYPE"),":","Toggle the desired set"
+    write(*,73) adjustl("TASK"),":","Toggle the desired set"
     write(*,78) "Allowed",":","Mandelbrot, Julia, Buddahbrot, Newton, Burning_ship, Phoenix, Nova, Magnet, Rational"
     write(*,74) "Default",":","Mandelbrot"
     write(*,*)
@@ -879,12 +896,7 @@ contains
        open(20,file="err.mand",status="unknown")
        write(20,*) "Error: ",trim(message)
 
-       call trace_stack(20)
-       print*,rank
-       call comms_barrier()
-       print*,rank
-       close(20)
-
+       call trace_stack(20,rank)
        stop
     !end if
   end subroutine io_errors
@@ -907,7 +919,7 @@ contains
     logical                    :: decimal=.false.
     call trace_entry("IO_INT_TO_REAL")
 
-    do j=0,len_trim(int_real)
+    do j=1,len_trim(int_real)
        if (int_real(j:j).eq.".")decimal=.true.
     end do
 
@@ -968,7 +980,7 @@ contains
     !==============================================================================!
     implicit none
     logical            :: zoom_check
-    real(complex_kind) :: width,height
+    real(dp) :: width,height
     integer            :: max_steps=10000
 
     call trace_entry("IO_ZOOM")
@@ -983,8 +995,8 @@ contains
        !print*,1/exp(-100*zoom_factor/(max_steps-1))
 
 
-       lower_x=real(centre,complex_kind)-width/2
-       upper_x=real(centre,complex_kind)+width/2
+       lower_x=real(centre,dp)-width/2
+       upper_x=real(centre,dp)+width/2
        lower_y=aimag(centre)-height/2
        upper_y=aimag(centre)+height/2
     end if
@@ -1038,6 +1050,42 @@ contains
     call trace_exit("IO_SCIENTIFIC_CORR")
   end subroutine io_scientific_corr
 
+
+
+
+  subroutine io_block_roots(skip)
+    implicit none
+    character(100):: line
+    real(dp) :: r,exponent
+    integer :: i,stat=0,n_roots=0
+    integer::skip
+    do while (stat.eq.0)
+       read(24,'(10A)',iostat=stat)line
+       if (index(io_string_to_lower(line),"%endblock").gt.0)then
+          stat=0
+          exit         
+       end if
+       n_roots=n_roots+1
+    end do
+
+    
+    if (stat.ne.0) call io_errors("Error in I/O: io_block_roots Block not closed")
+    do i=0,n_roots
+       backspace(24)
+    end do
+
+    allocate(roots(1:n_roots))
+
+    do i = 1,n_roots
+       read(24,'(A)') line
+       read(line,*)r,exponent
+       if (stat.ne.0)call io_errors('Error in I/O: Unable to parse complex root')
+       roots(i)=r*exp(2.0_dp*cmplx_i*pi*exponent)
+    end do
+    read(24,'(A)',iostat=stat) line
+    skip=n_roots+2
+
+  end subroutine io_block_roots
 
 end module IO
 

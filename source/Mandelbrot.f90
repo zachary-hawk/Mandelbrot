@@ -11,28 +11,29 @@ program Mandelbrot
   use io
   use comms
   use trace
-  use ISO_FORTRAN_ENV
+  use ISO_FORTRAN_ENV,only : real64
   implicit none
+
 
   integer                         :: i,j,l=0,m,i_buff,j_buff, rank_buff,comp_count,z_counter=21
   integer                         :: buddah_iter
-  real(real32),allocatable        :: Buffer_mpi(:),rank_0_buff(:)
-  real(real32),allocatable        :: set(:,:),buddah_set(:,:),buddah_buff(:,:)
-  complex(complex_kind)           :: c,z,c_buff=(0,0) ! the complex number to be used
-  double precision                :: dx,dy, init_time,init_buff,fini_time,fini_buff
-  double precision                :: start, finish ,inp_st, inp_fn,int_time,par_start,par_end
-  double precision                :: par_time=0.0,tot_par_time,total_proc_times
-  double precision                :: after_calc,after_calc_buff
+  real(dp),allocatable            :: Buffer_mpi(:),rank_0_buff(:)
+  real(dp),allocatable            :: set(:,:),buddah_set(:,:),buddah_buff(:,:)
+  complex(dp)                     :: c,z,c_buff=(0.0_dp,0.0_dp) ! the complex number to be used
+  real(dp)                        :: dx,dy, init_time,init_buff,fini_time,fini_buff
+  real(dp)                        :: start, finish ,inp_st, inp_fn,int_time,par_start,par_end
+  real(dp)                        :: par_time=0.0,tot_par_time,total_proc_times
+  real(dp)                        :: after_calc,after_calc_buff
   integer                         :: narg,cptArg,buddah_counter=0,buddah_buff_counter !#of arg & counter of arg
   character(len=20)               :: name,file_name="param" !Arg name
   logical                         :: args_bool=.FALSE.,dryrun=.false.,lookfor_c=.false.,on_root,new_file
   character*10                    :: clear_check
-  real                            :: eff,z_im=0.,z_re=0.
+  real(dp)                            :: eff,z_im=0.0_dp,z_re=0._dp
   integer                         :: data_size
-  real                            :: tolerance,frac,memory_size=0,memory_buffer=0,theta
-  real                            :: disk_stor=0,k,colour_ref,colour_ref_buff,comms_time_buff
-  real                            :: cos_thing
-
+  real(dp)                            :: tolerance,frac,memory_size=0,memory_buffer=0,theta
+  real(dp)                            :: disk_stor=0,k,colour_ref,colour_ref_buff,comms_time_buff
+  real(dp)                            :: cos_thing
+  complex(dp),allocatable,dimension(:):: coeff
   call trace_init()
   call trace_entry("MANDELBROT")
   !SET UP MPI ENVIRONMENT
@@ -102,8 +103,6 @@ program Mandelbrot
   call io_read_parameters(trim(file_name))
 
   call io_zoom(zoom)
-
-
   !Ensure commensurate with cores
   if (.not.b_for_carrying)then 
      do while (mod(N,nprocs).gt.0)
@@ -137,7 +136,7 @@ program Mandelbrot
      if (on_root) call io_errors(" Max No. iterations must be positive integer")
   else if (triangle.and.abs(julia_const).eq.0)then
      if (on_root) call io_errors("TIA unavailible when COMPLEX_SEED=0")
-  else if (e_default.lt.2.0)then
+  else if (e_default.lt.2.0_dp)then
      if (on_root) call io_errors("Exponential must be greater than 2.0")
   end if
 
@@ -145,32 +144,32 @@ program Mandelbrot
   ! Allocating arrays
   if (rank.eq.0) then
      allocate(set(1:N,1:N))
-     if (lookfor_data) disk_stor=sizeof(set)*1e-6
+     if (lookfor_data) disk_stor=sizeof(set)*1e-6_dp
      allocate(rank_0_buff(1:N))
      if (b_for_carrying) then
         allocate(buddah_buff(1:N,1:N))
      end if
-     memory_size=memory_size+sizeof(set)*1e-6
-     memory_size=memory_size+sizeof(rank_0_buff)*1e-6
+     memory_size=memory_size+sizeof(set)*1e-6_dp
+     memory_size=memory_size+sizeof(rank_0_buff)*1e-6_dp
   end if
   if(b_for_carrying)then
      allocate(buddah_set(1:N,1:N))
-     memory_size=memory_size+sizeof(buddah_set)*1e-6
+     memory_size=memory_size+sizeof(buddah_set)*1e-6_dp
   end if
   allocate(Buffer_mpi(1:N))
-  memory_size=memory_size+sizeof(buffer_mpi)*1e-6
+  memory_size=memory_size+sizeof(buffer_mpi)*1e-6_dp
 
 
 
   !Check the memory size
-  call COMMS_REDUCE_REAL(memory_size,memory_buffer,1,"MPI_SUM")
+  call COMMS_REDUCE(memory_size,memory_buffer,1,"MPI_SUM")
 
 
   ! BROADCAST INPUT TO SLAVES
-  call COMMS_BCAST_INT(N,1)
-  call COMMS_BCAST_DOUBLE(dx,1)
-  call COMMS_BCAST_DOUBLE(dy,1)
-  call COMMS_BCAST_INT(Max_iter,1)
+  call COMMS_BCAST(N,1)
+  call COMMS_BCAST(dx,1)
+  call COMMS_BCAST(dy,1)
+  call COMMS_BCAST(Max_iter,1)
 
   ! Check for Buddahbrot continuation
   if (rank.eq.0)then
@@ -209,7 +208,11 @@ program Mandelbrot
      write(stdout,*)"--------------------------------------------------------------------------- <-- TIME"
      write(stdout,*)"                           Starting Calculation                             <-- TIME"
      write(stdout,*)"--------------------------------------------------------------------------- <-- TIME"
+     flush(stdout)
   endif
+  if(newt_for_carrying)then
+     call fractal_coeff(coeff)
+  end if
 
   !Do the Calculations
 
@@ -234,30 +237,31 @@ program Mandelbrot
 
         frac=real(buddah_iter)/real(buddah_param/nprocs)
         do comp_count=10,90,10
-           if (frac.gt.real(comp_count)/100..or.&
-                frac.eq.real(comp_count)/100.)then
-              if (frac-real(comp_count)/100..lt.tolerance/2)then
-                 call COMMS_REDUCE_DOUBLE(int_time,par_time,1,"MPI_MAX")
+           if (frac.gt.real(comp_count,dp)/100.0_dp.or.&
+                frac.eq.real(comp_count,dp)/100.0_dp)then
+              if (frac-real(comp_count,dp)/100.0_dp.lt.tolerance/2)then
+                 call COMMS_REDUCE(int_time,par_time,1,"MPI_MAX")
                  if (rank.eq.0) write(stdout,200) "Calculation",comp_count,par_time-start
+                 flush(stdout)
               end if
            endif
         end do
 
-        z=cmplx(0,0)
+        z=cmplx_0
         c=fractal_random_pos()
 
-        if (fractal_mand(max_iter,z,c,2.).gt.max_iter)then
+        if (fractal_mand(max_iter,z,c,2.0_dp).gt.max_iter)then
            cycle
         end if
 
         buddah_counter=buddah_counter+1
-        z=cmplx(0,0)
+        z=cmplx_0
         do j=1,Max_iter
            z=z**2+c
            !           if(debug)print*, abs(z)
            if (abs(z).gt.bail_out) exit
 
-           k=int(N*(real(z)-lower_x)/(upper_x-lower_x))
+           k=int(N*(real(z,dp)-lower_x)/(upper_x-lower_x))
            m=int(N*(aimag(z)-lower_y)/(upper_y-lower_y))
 
            if (m.lt.N .and. m.gt.0)then
@@ -272,12 +276,12 @@ program Mandelbrot
      end do
 
      if (rank.gt.0)then
-        CALL COMMS_SEND_REAL_ARRAY2D(buddah_set,N,N,0,rank)
+        CALL COMMS_SEND(buddah_set,N,N,0,rank)
      end if
      if (rank.eq.0)then
         set=set+buddah_set
         do j=1,nprocs-1           
-           CALL COMMS_RECV_REAL_ARRAY2D(buddah_buff,N,N,j,j)
+           CALL COMMS_RECV(buddah_buff,N,N,j,j)
            set=set+buddah_buff
         end do
         set=set/maxval(set)
@@ -296,9 +300,9 @@ program Mandelbrot
 
 
 
-           c = cmplx(lower_X+i*dx,lower_Y+j*dy)
+           c = cmplx(lower_X+i*dx,lower_Y+j*dy,dp)
 
-           z=cmplx(z_re,z_im)
+           z=cmplx(z_re,z_im,dp)
 
            if (J_FOR_CARRYING)then
               z=julia_const
@@ -306,14 +310,15 @@ program Mandelbrot
 
            elseif(newt_for_carrying)then
 
-              theta=fractal_newton(max_iter,c,e_default,do_nova)
+              theta=fractal_newton(max_iter,c,e_default,do_nova,coeff)
 
            elseif(burn_for_carrying)then
               z=julia_const
               k=fractal_burning(Max_iter,z,c,e_default)
            elseif(do_magnet)then
-              z=(0,0)
+              z=cmplx_0
               k=fractal_magnet(Max_iter,z,c,e_default)
+
            elseif(do_phoenix)then
               z=julia_const
               k=fractal_phoenix(Max_iter,z,c,e_default)
@@ -322,7 +327,7 @@ program Mandelbrot
               k=fractal_rational(Max_iter,z,c,e_default,e_rational,lambda)
 
            else
-              z=(0,0)
+              z=cmplx_0
 
               k=fractal_mand(Max_iter,z,c,e_default)
 
@@ -331,10 +336,10 @@ program Mandelbrot
 
            if (lookfor_PARALLEL) then
               if(newt_for_carrying)then
-                 Buffer_mpi(j)=theta+rank*10
+                 Buffer_mpi(j)=theta+rank*10.0_dp
               else
 
-                 colour_ref =k+rank*10
+                 colour_ref =k+rank*10.0_dp
                  Buffer_mpi(j)=colour_ref
               end if
            else 
@@ -355,8 +360,8 @@ program Mandelbrot
               l=l+1
               par_start=COMMS_WTIME() ! Time the parallel stuff
 
-              CALL COMMS_RECV_INT(i_buff,1,m,1)
-              CALL COMMS_RECV_REAL_ARRAY(rank_0_buff,N+1,m,1)
+              CALL COMMS_RECV(i_buff,1,m,1)
+              CALL COMMS_RECV(rank_0_buff,N+1,m,1)
               par_end=COMMS_WTIME()
               par_time=par_time+par_end-par_start
               set(i_buff,1:N)=rank_0_buff
@@ -365,9 +370,9 @@ program Mandelbrot
         else
            par_start=COMMS_WTIME()
 
-           CALL COMMS_SEND_INT(i,1,0,1)
+           CALL COMMS_SEND(i,1,0,1)
 
-           CALL COMMS_SEND_REAL_ARRAY(Buffer_mpi,N+1,0,1)
+           CALL COMMS_SEND(Buffer_mpi,N+1,0,1)
            par_end=COMMS_WTIME()
            par_time=par_time+par_end-par_start
         end if
@@ -376,15 +381,16 @@ program Mandelbrot
         !Timing the steps           
         int_time=COMMS_WTIME()
 
-        tolerance=1/(real(N)/real(nprocs))
-        frac=real(i-rank*real(N)/real(nprocs))/(real(N)/real(nprocs))
+        tolerance=1/(real(N,dp)/real(nprocs,dp))
+        frac=real(i-rank*real(N,dp)/real(nprocs,dp))/(real(N,dp)/real(nprocs,dp))
         do comp_count=10,90,10
-           if (frac.gt.real(comp_count)/100..or.&
-                frac.eq.real(comp_count)/100.)then
-              if (frac-real(comp_count)/100..lt.tolerance/2)then
-                 call COMMS_REDUCE_DOUBLE(int_time,fini_buff,1,"MPI_MAX")
+           if (frac.gt.real(comp_count,dp)/100.0_dp.or.&
+                frac.eq.real(comp_count,dp)/100.0_dp)then
+              if (frac-real(comp_count,dp)/100.0_dp.lt.tolerance/2)then
+                 call COMMS_REDUCE(int_time,fini_buff,1,"MPI_MAX")
                  if (on_root)then
                     write(stdout,200) "Calculation",comp_count,fini_buff-start
+                    flush(stdout)
                  end if
               end if
            endif
@@ -424,28 +430,28 @@ program Mandelbrot
      close(2)
      !if(debug) print*,set
   end if
-  
+
   finish = COMMS_WTIME()
-  call COMMS_REDUCE_DOUBLE(start,inp_st,1,"MPI_MIN")
-  CALL COMMS_REDUCE_DOUBLE(finish,inp_fn,1,"MPI_MAX")
-  CALL COMMS_REDUCE_DOUBLE(finish-start,total_proc_times,1,"MPI_SUM")
-  CALL COMMS_REDUCE_DOUBLE(init_time,init_buff,1,"MPI_MAX")
+  call COMMS_REDUCE(start,inp_st,1,"MPI_MIN")
+  CALL COMMS_REDUCE(finish,inp_fn,1,"MPI_MAX")
+  CALL COMMS_REDUCE(finish-start,total_proc_times,1,"MPI_SUM")
+  CALL COMMS_REDUCE(init_time,init_buff,1,"MPI_MAX")
   if (b_for_carrying)then
-     CALL COMMS_REDUCE_INT(buddah_counter,buddah_buff_counter,1,"MPI_SUM")
+     CALL COMMS_REDUCE(buddah_counter,buddah_buff_counter,1,"MPI_SUM")
   end if
-  CALL COMMS_REDUCE_DOUBLE(par_time,tot_par_time,1,"MPI_SUM")
-  CALL COMMS_REDUCE_DOUBLE(after_calc,after_calc_buff,1,"MPI_MAX")
+  CALL COMMS_REDUCE(par_time,tot_par_time,1,"MPI_SUM")
+  CALL COMMS_REDUCE(after_calc,after_calc_buff,1,"MPI_MAX")
 
 
   !FINALISE THE TRACE
   call trace_exit("MANDELBROT")
   call trace_finalise(debug,rank)
 
-  CALL COMMS_REDUCE_REAL(comms_time,comms_time_buff,1,"MPI_SUM")
+  CALL COMMS_REDUCE_DOUBLE(comms_time,comms_time_buff,1,"MPI_SUM")
 
 
 
-  comms_time=comms_time_buff/nprocs
+  comms_time=comms_time_buff/real(nprocs,dp)
 
 
   if (on_root)then
@@ -463,9 +469,10 @@ program Mandelbrot
 1001 format(1x,A37,5x,':',F13.5," s",18x,"<-- TIME")   
      write(stdout,*)"--------------------------------------------------------------------------- <-- TIME"
      write(stdout,*)
-     if (nprocs.gt.1) write(stdout,304) "Parallel Efficiency:", 100*(1-comms_time/inp_fn-inp_st),"%"
+     if (nprocs.gt.1) write(stdout,304) "Parallel Efficiency:", 100.0_dp*(1-comms_time/(inp_fn-inp_st)),"%"
+
      if (b_for_carrying)then 
-        write(stdout,304) "Buddahbrot Efficiency:",100.*real(buddah_buff_counter)/real(buddah_param),"%"
+        write(stdout,304) "Buddahbrot Efficiency:",100.0_dp*real(buddah_buff_counter,dp)/real(buddah_param,dp),"%"
 304     format(1x,A,12x,f6.2,1x,A)
      end if
 

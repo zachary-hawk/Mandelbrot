@@ -13,17 +13,19 @@ COMMS_ARCH:=mpi
 
 MPI_FC:=mpif90
 
-SERIAL_FC:=ifort
+F90:=gfortran
 
 PRECISION:=real32
+
+BUILD= fast
 
 ########################################
 
 export COMMS_ARCH
 export MPI_FC
-export SERIAL_FC
+export F90
 export PRECISION
-
+export BUILD
 ifeq ($(COMMS_ARCH),mpi)
 
 

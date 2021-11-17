@@ -3,29 +3,38 @@
 !=============================================================================!
 !                                 T R A C E                                   !
 !=============================================================================!
-!                 Module for profiling the Mandelbrot code                    !
+!                 Module for profiling the MC_POP code                        !
 !-----------------------------------------------------------------------------!
 !                           author: Z. Hawkhead                               !
 !=============================================================================!
 module trace
+  use iso_fortran_env,only: real64
   implicit none
-  real,dimension(:),allocatable             :: entry_time_array
-  real,dimension(:),allocatable             :: exit_time_array
+
+  public
+
+  integer,parameter                 :: dp=real64  
+
+  real(dp),dimension(:),allocatable         :: entry_time_array
+  real(dp),dimension(:),allocatable         :: exit_time_array
   character(50),dimension(:),allocatable    :: entry_array
   character(50),dimension(:),allocatable    :: exit_array
-  real,dimension(:),allocatable             :: temp_real_array
+  real(dp),dimension(:),allocatable         :: temp_real_array
   character(50),dimension(:),allocatable    :: temp_char_array
   character(50),dimension(:),allocatable    :: unique_array
   integer,dimension(:),allocatable          :: parent_array
   integer,dimension(:),allocatable          :: temp_int_array
-  real                                      :: comms_start_time
-  real                                      :: io_start_time
-  real                                      :: comms_end_time
-  real                                      :: io_end_time
-  real                                      :: comms_time
-  real                                      :: io_time
+  real(dp)                                  :: comms_start_time=0
+  real(dp)                                  :: io_start_time=0
+  real(dp)                                  :: comms_end_time=0
+  real(dp)                                  :: io_end_time=0
+  real(dp)                                  :: comms_time=0
+  real(dp)                                  :: io_time=0
   integer                                   :: no_subs
   integer                                   :: parent_counter=0
+
+  ! Global timekeeping parameters
+  real(dp),public                           :: global_start,global_end,global_time
 
 contains
 
@@ -43,6 +52,9 @@ contains
     !==============================================================================!
     implicit none
     integer   :: iostat
+    call CPU_TIME(global_start)
+
+    !print*,"init start"
     allocate(entry_array(1),stat=iostat)
     if (iostat.ne.0) stop
     allocate(entry_time_array(1),stat=iostat)
@@ -53,6 +65,7 @@ contains
     if (iostat.ne.0) stop
     allocate(parent_array(1),stat=iostat)
     if (iostat.ne.0) stop
+    !print*,"init end"
   end subroutine trace_init
 
 
@@ -73,17 +86,19 @@ contains
     character(*), intent(in)  :: sub_name
     character(30)                    :: new_sub_name
     real                      :: time
+
     new_sub_name=trace_string_to_lower(sub_name)
 
+    !print*,"entry start"
     call CPU_TIME(time)
-
+    !print*,"IN: ",trim(sub_name)
     ! check for comms
     if (index(new_sub_name,"comms").gt.0) comms_start_time=comms_start_time+time
     if (index(new_sub_name,"io_").gt.0) io_start_time=io_start_time+time
     !set the things to the last array element
 
 
-    
+
     entry_array(size(entry_array))=trim(new_sub_name)
     parent_array(size(parent_array))=parent_counter
     entry_time_array(size(entry_time_array))=time
@@ -108,7 +123,7 @@ contains
 
     !increase the parent counter
     parent_counter=parent_counter+1
-
+    !print*,"entry end"
   end subroutine trace_entry
 
 
@@ -130,12 +145,13 @@ contains
     character(*), intent(in)      :: sub_name
     character(30)                    :: new_sub_name
     real                          :: time
+    !print*,"exit start"
     new_sub_name=trace_string_to_lower(sub_name)
     call CPU_TIME(time)
+    !print*,"OUT: ",trim(sub_name)
     ! check for comms
     if (index(sub_name,"COMMS").gt.0) comms_end_time=comms_end_time+time
-    if (index(sub_name,"IO_").gt.0) io_end_time=io_end_time+time
-
+    if (index(sub_name,"io_").gt.0) io_end_time=io_end_time+time
     !set the things to the last array elemen
 
 
@@ -159,11 +175,13 @@ contains
 
     !decrease the parent counter
     parent_counter=parent_counter-1
+
+    !print*,"exit end"
   end subroutine trace_exit
 
 
 
-  subroutine trace_finalise(debug,rank)
+  subroutine trace_finalise(debug,rank,check_stack)
     !==============================================================================!
     !                         T R A C E _ F I N A L I S E                          !
     !==============================================================================!
@@ -177,38 +195,45 @@ contains
     ! Author:   Z. Hawkhead  26/08/2019                                            !
     !==============================================================================!
     implicit none
-    integer                          :: i,k
+    integer                          :: i,k,stat
     logical,intent(in)               :: debug
     real,dimension(:),allocatable    :: start_time_sum
     real,dimension(:),allocatable    :: end_time_sum
     real,dimension(:),allocatable    :: sub_times
     integer,dimension(:),allocatable :: call_count
     character(len=50),dimension(:),allocatable :: unique_subs_trimmed
-    integer,intent(inout),optional   :: rank
+    integer,intent(inout)            :: rank
+
+    logical, optional                :: check_stack
+
     ! TRIM DOWN THE ARRAYS
-
-    !print*,entry_array
-    !print*,exit_array
+    !print*,"finalise start"
+    !!print*,entry_array
+    !!print*,exit_array
     parent_array(size(parent_array))=0
-    !print*,parent_array
+    !!print*,parent_array
 
 
-    allocate(temp_real_array(1:size(entry_time_array)-1))
-    temp_real_array(1:size(entry_time_array))=entry_time_array
-    call  move_alloc(temp_real_array,entry_time_array)
-
-    allocate(temp_char_array(1:size(entry_array)-1))
-    temp_char_array(1:size(entry_array))=entry_array
-    call  move_alloc(temp_char_array,entry_array)
+    !allocate(temp_real_array(1:size(entry_time_array)-1))
+    !temp_real_array(1:size(entry_time_array))=entry_time_array
+    !call  move_alloc(temp_real_array,entry_time_array)
 
 
-    allocate(temp_real_array(1:size(exit_time_array)-1))
-    temp_real_array(1:size(exit_time_array))=exit_time_array
-    call  move_alloc(temp_real_array,exit_time_array)
 
-    allocate(temp_char_array(1:size(exit_array)-1))
-    temp_char_array(1:size(exit_array))=exit_array
-    call  move_alloc(temp_char_array,exit_array)
+
+    ! allocate(temp_char_array(1:size(entry_array)-1))
+    ! temp_char_array(1:size(entry_array))=entry_array
+    ! call  move_alloc(temp_char_array,entry_array)
+
+
+
+    !allocate(temp_real_array(1:size(exit_time_array)-1))
+    !temp_real_array(1:size(exit_time_array))=exit_time_array
+    !call  move_alloc(temp_real_array,exit_time_array)
+
+    !allocate(temp_char_array(1:size(exit_array)-1))
+    !temp_char_array(1:size(exit_array))=exit_array
+    !call  move_alloc(temp_char_array,exit_array)
 
     ! DEFINE THE COMM TIME- ACCESSIBLE GLOBALLY
     comms_time=abs(comms_end_time-comms_start_time)
@@ -216,8 +241,8 @@ contains
 
 
 
-    if (allocated(temp_real_array)) deallocate(temp_real_array)
-    if (allocated(temp_char_array)) deallocate(temp_char_array)
+    !if (allocated(temp_real_array)) deallocate(temp_real_array)
+    !if (allocated(temp_char_array)) deallocate(temp_char_array)
 
 
     ! HANDLE ALL OF THE UNIQUE CHECKING AND SUMMING UP THE SHIT
@@ -247,8 +272,13 @@ contains
     allocate(unique_subs_trimmed(1:no_subs))
     unique_subs_trimmed=unique_array(1:no_subs)
 
-
-
+    
+    if (.not.present(check_stack))then
+       if (size(entry_array).ne.size(exit_array)) then
+          write(*,*) "Error: trace array mismatch"
+          stop
+       end if
+    end if
     do i=1,size(unique_subs_trimmed)
        do k=1,size(entry_array)
 
@@ -265,19 +295,21 @@ contains
     sub_times=abs(end_time_sum-start_time_sum)
 
     call trace_sort(sub_times,unique_subs_trimmed,call_count)
-
-    
-    if (present(rank))then
-       !print*,debug
-       if(debug)call trace_IO(rank,unique_subs_trimmed,sub_times,call_count)
-    end if
-    deallocate(unique_subs_trimmed)
+    !print*,"test"
 
 
-    deallocate(call_count)
-    deallocate(sub_times)
-    deallocate(start_time_sum,end_time_sum)    
+    if(debug)call trace_IO(rank,unique_subs_trimmed,sub_times,call_count)
 
+    !deallocate(unique_subs_trimmed)
+
+
+    !deallocate(call_count)
+    !deallocate(sub_times)
+    !deallocate(start_time_sum,end_time_sum)    
+    !print*,"finalise end"
+    call CPU_TIME(global_end)
+    global_time=global_end-global_start
+    return 
   end subroutine trace_finalise
 
 
@@ -301,12 +333,16 @@ contains
     character(len=50),dimension(:),allocatable   :: res  ! The output
     character(len=50),dimension(:),intent(inout) :: out_array
     integer,intent(out)                          :: k                   ! The number of unique elements
-    integer :: i, j
+    integer :: i, j, stat
 
-    allocate(res(size(unsorted_array)))
+    !print*,"unique start"
+
+    allocate(res(size(unsorted_array)-1))
+
+
     k = 1
     res(1) = unsorted_array(1)
-    outer: do i=2,size(unsorted_array)
+    outer: do i=2,size(unsorted_array)-1
        do j=1,k
           if (res(j) == unsorted_array(i)) then
              ! Found a match so start looking again
@@ -318,7 +354,7 @@ contains
        res(k) = unsorted_array(i)
     end do outer
     out_array(1:size(res))=res
-
+    !print*,"unique end"
   end subroutine trace_unique
 
 
@@ -345,10 +381,10 @@ contains
     integer,dimension(:),intent(inout)           :: count_array
     integer,dimension(:),allocatable             :: temp_count
     integer                         :: i,j,k
-
+    !print*, "sort start"
     allocate(temp_array(1:size(array_to_sort)))
     allocate(temp_array_char(1:size(array_to_sort)))
-
+    allocate(temp_count(1:size(count_array)))
 
 
     do j=1,size(array_to_sort)-1
@@ -373,7 +409,7 @@ contains
           end if
        end do
     end do
-
+    !print*,"sort end"
   end subroutine trace_sort
 
 
@@ -399,7 +435,8 @@ contains
     integer                    :: i 
     integer                    :: k 
     integer::length
-!    call trace_entry("IO_STRING_TO_LOWER")
+    !print*,"string start"
+    !    call trace_entry("IO_STRING_TO_LOWER")
     length = len(string)
     new    = string
     do i = 1,len(string)
@@ -409,10 +446,11 @@ contains
           new(i:i) = achar(k)
        endif
     enddo
-!    call trace_exit("IO_STRING_TO_LOWER")
+    !    call trace_exit("IO_STRING_TO_LOWER")
+    !print*,"string end"
   end function trace_string_to_lower
-  
-  
+
+
   subroutine trace_IO(rank,subs_list,time_list,call_list)
     !==============================================================================!
     !                               T R A C E _ I O                                !
@@ -436,6 +474,7 @@ contains
     integer                               :: file_id
     character(3)                          :: rank_char
     integer                               :: i
+    !print*,"io start"
     file_id=rank*294+89
 
     write(rank_char,'(i3)')rank
@@ -446,54 +485,88 @@ contains
 
     open(unit=file_id,file="profile."//rank_char//".mand",RECL=8192,form="FORMATTED",status="UNKNOWN")
 
-    write(file_id,*) "+==================================================================================+"
-    write(file_id,*) "| MM    MM   AAA   NN   NN DDDDD   EEEEEEE LL      BBBBB   RRRRRR   OOOOO  TTTTTTT |"
-    write(file_id,*) "| MMM  MMM  AAAAA  NNN  NN DD  DD  EE      LL      BB   B  RR   RR OO   OO   TTT   |"
-    write(file_id,*) "| MM MM MM AA   AA NN N NN DD   DD EEEEE   LL      BBBBBB  RRRRRR  OO   OO   TTT   |"
-    write(file_id,*) "| MM    MM AAAAAAA NN  NNN DD   DD EE      LL      BB   BB RR  RR  OO   OO   TTT   |"
-    write(file_id,*) "| MM    MM AA   AA NN   NN DDDDDD  EEEEEEE LLLLLLL BBBBBB  RR   RR  OOOO0    TTT   |"
-    write(file_id,*) "+==================================================================================+"
-    write(file_id,*) "|                                                                                  |"
+
+
+
+
+
+
+
+    
+    write(file_id,*)    '+==============================================================================================+'
+    write(file_id,*)    '|                                                                                              |'
+    write(file_id,*)    '|       MM    MM   AAA   NN   NN DDDDD   EEEEEEE LL      BBBBB   RRRRRR   OOOOO  TTTTTTT       |'
+    write(file_id,*)    '|       MMM  MMM  AAAAA  NNN  NN DD  DD  EE      LL      BB   B  RR   RR OO   OO   TTT         |'
+    write(file_id,*)    '|       MM MM MM AA   AA NN N NN DD   DD EEEEE   LL      BBBBBB  RRRRRR  OO   OO   TTT         |'
+    write(file_id,*)    '|       MM    MM AAAAAAA NN  NNN DD   DD EE      LL      BB   BB RR  RR  OO   OO   TTT         |'
+    write(file_id,*)    '|       MM    MM AA   AA NN   NN DDDDDD  EEEEEEE LLLLLLL BBBBBB  RR   RR  OOOO0    TTT         |'
+    write(file_id,*)    '|                                                                                              |' 
+    write(file_id,*)    '+----------------------------------------------------------------------------------------------+'
+    write(file_id,*)    '|           Mandelbrot v.3.0. Z.Hawkhead                                                       |'
+    write(file_id,*)    '+==============================================================================================+'
+    write(file_id,*)    '|                                                                                              |'
     write(file_id,9)  rank_char
 
-9   FORMAT(1x,"|",30x,"P R O F I L E :",2x,A,32x,"|")
+9   FORMAT(1x,"|",36x,"P R O F I L E :",2x,A,38x,"|")
 
-    write(file_id,*) "|                                                                                  |"
-    write(file_id,*) "+==================================================================================+"
-    write(file_id,*) "|       Subroutine:                 Call Count:                  Time:             |"
-    write(file_id,*) "+==================================================================================+"
+    write(file_id,*)    "|                                                                                              |"
+    write(file_id,*)    "+==============================================================================================+"
+    write(file_id,*)    "|       Subroutine:                                                Call Count:       Time:     |"
+    write(file_id,*)    "+==============================================================================================+"
 
 
-19  format(1x,"|",3x,A25,10x,i5,19x,f10.4,1x,"s",8x,"|")
+19  format(1x,"|",3x,A25,T75,i5,T83,f10.5,1x,"s",T97,"|")
     do i=1,size(subs_list)
        write(file_id,19) adjustl(subs_list(i)),call_list(i),time_list(i)
 
     end do
 
-    write(file_id,*) "+==================================================================================+"
+    write(file_id,*) "+==============================================================================================+"
 
-    write(file_id,'(1x,A,3x,A,3x,i3,47x,a)') "|","No. Subroutines Profiled :",size(subs_list),"|"
-    write(file_id,'(1x,A,3x,A,2x,f10.5,1x,a,39x,a)') "|","Time Spent in COMMS      :",comms_time,"s","|"
-    write(file_id,'(1x,A,3x,A,2x,f10.5,1x,a,39x,a)') "|","Time Spent in IO         :",io_time,"s","|"    
+    write(file_id,'(1x,A,3x,A,3x,i3,59x,a)') "|","No. Subroutines Profiled :",size(subs_list),"|"
+    write(file_id,'(1x,A,3x,A,2x,f10.5,1x,a,51x,a)') "|","Time Spent in COMMS      :",comms_time,"s","|"
+    write(file_id,'(1x,A,3x,A,2x,f10.5,1x,a,51x,a)') "|","Time Spent in IO         :",io_time,"s","|"    
 
-    write(file_id,*) "+==================================================================================+"
+    write(file_id,*) "+==============================================================================================+"
     call trace_parents(file_id)
     close(file_id)
+    !print*,"io end"
   end subroutine trace_IO
 
 
-  subroutine trace_stack(err_file)
+  subroutine trace_stack(err_file,rank)
+    !==============================================================================!
+    !                            T R A C E _ S T A C K                             !
+    !==============================================================================!
+    ! Subroutine to handle the stack for the error handling in MC_POP. Gives the   !
+    ! current trace of the subroutine calls.                                       !
+    !------------------------------------------------------------------------------!
+    ! Arguments:                                                                   !
+    !           err_file,          intent :: in                                    !
+    !------------------------------------------------------------------------------!
+    ! Author:   Z. Hawkhead  21/01/2020                                            !
+    !==============================================================================!
     implicit none
     integer, intent(in)    :: err_file
     character(len=30)      :: current_sub
     character(len=30),allocatable,dimension(:) :: stack
     character(len=30),allocatable,dimension(:) :: temp_stack
-    integer                :: i,iostat,current_parents
-
+    integer                :: i,iostat,current_parents,rank
+    !print*,"stack start"
     !Do some setting up, 
     current_sub=entry_array(size(entry_array)-1)
+
     call trace_exit(current_sub)
-    call trace_finalise(.FALSE.)
+    
+    do i=1,size(entry_array)
+       !print*,trim(entry_array(i))
+    end do
+    do i=1,size(exit_array)
+       !print*,trim(exit_array(i))
+    end do
+
+
+    call trace_finalise(.FALSE.,rank,.true.)
     current_parents=parent_array(size(parent_array)-1)
     allocate(stack(1),stat=iostat)
     if (iostat.ne.0) stop
@@ -512,7 +585,7 @@ contains
           call  move_alloc(temp_stack,stack)
 
           stack(size(stack))=entry_array(size(parent_array)-i)
-          
+
        end if
     end do
     write(err_file,*) "Stack trace:"
@@ -521,23 +594,34 @@ contains
 
     end do
 
-    if (allocated(temp_stack))deallocate(temp_stack)
-
+    !if (allocated(temp_stack))deallocate(temp_stack)
+    !print*,"stack end"
   end subroutine trace_stack
 
-  
-  subroutine trace_parents(file_id)
-    implicit none
-    integer :: file_id,temp_int,i,width,width2
-    character(len=100) :: fmt_str,fmt_str2
 
+  subroutine trace_parents(file_id)
+    !==============================================================================!
+    !                          T R A C E _ P A R E N T S                           !
+    !==============================================================================!
+    ! Subroutine used for sorting the subroutine calls by parents and children.    !
+    !------------------------------------------------------------------------------!
+    ! Arguments:                                                                   !
+    !           file_id,           intent :: in                                    !
+    !------------------------------------------------------------------------------!
+    ! Author:   Z. Hawkhead  21/01/2020                                            !
+    !==============================================================================!
+    implicit none
+    integer :: file_id,temp_int,i,width,width2,k
+    character(len=100) :: fmt_str,fmt_str2,fmt_for,fmt_bk,fmt_po
+    character(len=20)  :: forward, back, point
+    !print*,"parents start"
 
     !39  format(1x,"|",4x,<temp_int>x,A,1x,A,<width>x"|")
     !38  format(1x,"|",3x,<temp_int>x,A,<width2>x"|")
 
 
-    write(file_id,*) "|                                    Call Log:                                     |"
-    write(file_id,*) "+==================================================================================+"
+    write(file_id,'(" |",T8,A,T87,A,T97,"|")')"Call Log:","Time:"
+    write(file_id,*) "+==============================================================================================+"
 
 
 
@@ -545,32 +629,51 @@ contains
     do i=1,size(parent_array)-1
 
        temp_int=2*parent_array(i)
-       width=82-4-temp_int-3-1-len(entry_array(i))
-       width2=82-4-temp_int
+       width=82-4-temp_int-3-1-len(entry_array(i))-10
+       width2=82-4-temp_int 
+
+       ! Set up the characters that start the line
        if (temp_int.eq.0)then
-          write(fmt_str,'(A,i0,A,A)') '(1x,"|",4x,A,1x,A,',width,'x,"|")'
-          write(fmt_str2,'(A,i0,A,A)') '(1x,"|",3x,A,',width2,'x,"|")'
+          !skip
+          write(point,*)"o->"
+          write(back,*)" |\ "
+          write(forward,*)" |/"
        else
-          
-          write(fmt_str,'(A,i0,A,i0,A)') '(1x,"|",4x,',temp_int,'x,A,1x,A,',width,'x,"|")'
-          write(fmt_str2,'(A,i0,A,i0,A)') '(1x,"|",3x,',temp_int,'x,A,',width2,'x,"|")'
+          write(back,*) (" |",k=1,temp_int/2),"\ "
+          write(point,*) ("| ", k=1,temp_int/2),"o->"
+          write(forward,*) (" |",k=1,temp_int/2),"/ "
+
        end if
 
-       !print*,fmt_str
-       !print*,fmt_str2
+
+       if (temp_int.eq.0)then
+          write(fmt_str,*) '(1x,"|",3x,A,1x,A,T83,f10.5,x,"s",T97,"|")'
+          write(fmt_str2,*) '(1x,"|",2x,A,T97,"|")'
+       else
+
+          write(fmt_str,*) '(1x,"|",3x,A,1x,A,T83,f10.5,x,"s",T97,"|")'
+          write(fmt_str2,*) '(1x,"|",2x,A,T97,"|")'
+       end if
+
+       !!print*,fmt_str
+       !!print*,fmt_str2
 
        if (i.gt.1)then
-          if (parent_array(i).gt.parent_array(i-1)) write(file_id,trim(fmt_str2)) '\'
-
-
+          if (parent_array(i).gt.parent_array(i-1)) then
+             write(file_id,trim(fmt_str2)) trim(back)!trim('\ ')
+          end if
        end if
-       write(file_id,trim(fmt_str)) "o->",entry_array(i)
+       write(file_id,trim(fmt_str)) trim(point),entry_array(i),entry_time_array(i)
        if (parent_array(i).eq.parent_array(i+1)+1.and.i.lt.size(parent_array)-1)&
-            write(file_id,trim(fmt_str2)) "/"
+            then
+          write(file_id,trim(fmt_str2)) trim(forward)!"/"
+       end if
+
     end do
 
 
-    write(file_id,*) "+==================================================================================+"
+    write(file_id,*) "+==============================================================================================+"
+    !print*, "parents end"
   end subroutine trace_parents
 
 

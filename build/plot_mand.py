@@ -57,11 +57,14 @@ else:
 
 print("Cmap used: ",color,"\nindex:",cmaps.index(color))
 
-f = FortranFile("data.mand", "r")
+f = FortranFile("data.mand", "r",'>u4')
 
-data = f.read_reals(np.float32)#.reshape((n,n))
+data = f.read_reals('>f8')#.reshape((n,n))
 n=int(np.sqrt(len(data)))
 data=data.reshape((n,n))
+
+#print(data)
+data[data < -1e308] = 0
 
 
 #print(data)
