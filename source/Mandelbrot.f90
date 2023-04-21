@@ -20,7 +20,7 @@ program Mandelbrot
   real(dp),allocatable            :: Buffer_mpi(:),rank_0_buff(:)
   real(dp),allocatable            :: set(:,:),buddah_set(:,:),buddah_buff(:,:)
   complex(dp)                     :: c,z,c_buff=(0.0_dp,0.0_dp) ! the complex number to be used
-  real(dp)                        :: dx,dy, init_time,init_buff,fini_time,fini_buff
+  real(dp)                        :: init_time,init_buff,fini_time,fini_buff
   real(dp)                        :: start, finish ,inp_st, inp_fn,int_time,par_start,par_end
   real(dp)                        :: par_time=0.0,tot_par_time,total_proc_times
   real(dp)                        :: after_calc,after_calc_buff
@@ -108,6 +108,10 @@ program Mandelbrot
      do while (mod(N,nprocs).gt.0)
         N=N+1
      end do
+     do while (mod(Ny,nprocs).gt.0)
+        Ny=Ny+1
+     end do
+
   end if
 
 
@@ -143,20 +147,20 @@ program Mandelbrot
 
   ! Allocating arrays
   if (rank.eq.0) then
-     allocate(set(1:N,1:N))
+     allocate(set(1:N,1:Ny))
      if (lookfor_data) disk_stor=sizeof(set)*1e-6_dp
-     allocate(rank_0_buff(1:N))
+     allocate(rank_0_buff(1:Ny))
      if (b_for_carrying) then
-        allocate(buddah_buff(1:N,1:N))
+        allocate(buddah_buff(1:N,1:Ny))
      end if
      memory_size=memory_size+sizeof(set)*1e-6_dp
      memory_size=memory_size+sizeof(rank_0_buff)*1e-6_dp
   end if
   if(b_for_carrying)then
-     allocate(buddah_set(1:N,1:N))
+     allocate(buddah_set(1:N,1:Ny))
      memory_size=memory_size+sizeof(buddah_set)*1e-6_dp
   end if
-  allocate(Buffer_mpi(1:N))
+  allocate(Buffer_mpi(1:Ny))
   memory_size=memory_size+sizeof(buffer_mpi)*1e-6_dp
 
 
@@ -167,8 +171,8 @@ program Mandelbrot
 
   ! BROADCAST INPUT TO SLAVES
   call COMMS_BCAST(N,1)
+  call COMMS_BCAST(Ny,1)
   call COMMS_BCAST(dx,1)
-  call COMMS_BCAST(dy,1)
   call COMMS_BCAST(Max_iter,1)
 
   ! Check for Buddahbrot continuation
@@ -179,7 +183,7 @@ program Mandelbrot
            if (lookfor_cont)then
               open(unit=99,file="data.mand",status="unknown",access="stream",form="Unformatted")
               inquire(unit=99,size=data_size)
-              if (data_size /= ((N**2)*4+8))then
+              if (data_size /= ((N*Ny)*4+8))then
                  if (on_root) call io_errors("Incompatible grid size for continuation")
               else
                  read(99)set
@@ -220,8 +224,8 @@ program Mandelbrot
 
 
   call trace_entry("MAIN_CALC")
-  dx = (upper_X-lower_X)/N
-  dy = (upper_Y-lower_Y)/N
+  !dx = (upper_X-lower_X)/N
+  !dy = (upper_Y-lower_Y)/N
 
   !This bit for the Buddahbrot
 
@@ -296,11 +300,11 @@ program Mandelbrot
 
      do i=1+rank*N/nprocs,(rank+1)*N/nprocs
 
-        do j=1,N
+        do j=1,Ny
 
 
 
-           c = cmplx(lower_X+i*dx,lower_Y+j*dy,dp)
+           c = cmplx(lower_X+i*dx,lower_Y+j*dx,dp)
 
            z=cmplx(z_re,z_im,dp)
 
@@ -328,7 +332,7 @@ program Mandelbrot
 
            else
               z=cmplx_0
-
+              
               k=fractal_mand(Max_iter,z,c,e_default)
 
            end if
@@ -355,16 +359,16 @@ program Mandelbrot
 
         if (on_root) then 
 
-           set(i,1:N)=Buffer_mpi
+           set(i,1:Ny)=Buffer_mpi
            do m=1,nprocs-1
               l=l+1
               par_start=COMMS_WTIME() ! Time the parallel stuff
 
               CALL COMMS_RECV(i_buff,1,m,1)
-              CALL COMMS_RECV(rank_0_buff,N+1,m,1)
+              CALL COMMS_RECV(rank_0_buff,Ny+1,m,1)
               par_end=COMMS_WTIME()
               par_time=par_time+par_end-par_start
-              set(i_buff,1:N)=rank_0_buff
+              set(i_buff,1:Ny)=rank_0_buff
            end do
 200        format(1x,A24,1x,i2,"% complete",5x,':',F13.5," s",18x,"<-- TIME")
         else
@@ -372,7 +376,7 @@ program Mandelbrot
 
            CALL COMMS_SEND(i,1,0,1)
 
-           CALL COMMS_SEND(Buffer_mpi,N+1,0,1)
+           CALL COMMS_SEND(Buffer_mpi,Ny+1,0,1)
            par_end=COMMS_WTIME()
            par_time=par_time+par_end-par_start
         end if
@@ -426,6 +430,8 @@ program Mandelbrot
 
   if (lookfor_data.and.on_root)then
      !if(debug)write(stdout,*)set
+     write(2)real(N,dp)
+     write(2)real(Ny,dp)
      write(2)set
      close(2)
      !if(debug) print*,set

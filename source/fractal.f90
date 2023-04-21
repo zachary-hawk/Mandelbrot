@@ -209,12 +209,13 @@ contains
     real(dp):: e,z_cum=0,k_real,d,z_cum_old
     k_real=0.0_dp
     !    call trace_entry("BURNING")
+    
     if (e.EQ.int(e))then
        do k=0,Max_iter
 
           !          z=          (real(z)+cmplx(0,1)*(dimag(z)))*(real(z)-cmplx(0,1)*(dimag(z)))+c
           z_old=z
-          z = (abs(real(z,dp))+cmplx_i*abs(dimag(z)))**int(e)+c
+          z = (abs(real(z,dp))-cmplx_i*abs(dimag(z)))**int(e)+c
           if (triangle)then
              z_cum_old=z_cum
              call colour_triangle_ineq(z,c,z_old,z_cum,k)
@@ -231,7 +232,7 @@ contains
     else
        do k=0,Max_iter
           z_old=z
-          z = (abs(real(z,dp))+cmplx_i*abs(dimag(z)))**e+c
+          z = (abs(real(z,dp))-cmplx_i*abs(dimag(z)))**e+c
           if (triangle)then
              z_cum_old=z_cum
              call colour_triangle_ineq(z,c,z_old,z_cum,k)
@@ -433,8 +434,9 @@ contains
     implicit none
     complex(dp) :: z,z_old,z_pix
     complex(dp),dimension(:) :: coeff
+    real(dp),dimension(:),allocatable :: dist
     real(dp):: theta,e
-    integer :: k,Max_iter
+    integer :: k,Max_iter,i
     logical :: nova
 
     if (.not.allocated(roots))then
@@ -465,10 +467,17 @@ contains
 
     if(smooth)then
        call colour_smooth_iter(k,z,theta)
+    elseif(simple_set)then
+       allocate(dist(1:size(roots)))
+       do i=1, size(roots)
+          dist(i) = abs(roots(i)-z)
+       end do
+       theta=real(minloc(dist,DIM=1),dp)
+       
     endif
-
-
-
+    
+    
+    
 
 
   end function fractal_newton

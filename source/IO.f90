@@ -14,9 +14,10 @@ module IO
   use trace
   implicit none
 !!!!!! DEFINE THE DEFAULTS !!!!!!!!!
-  integer          :: N=1000
+  integer          :: N=1000,Ny
   integer          :: Max_iter=50
   real(dp)             :: relaxation=1
+  real(dp)             :: dx
   real(dp)             :: e_default=2.
   real(dp)             :: e_rational=-2
   real(dp)             :: lambda=-0.35
@@ -57,8 +58,8 @@ module IO
   character(100)   :: info="Parallel code for calculating the Mandelbrot Set"
   character(100)   :: DATE,TIME,compiler,arch_string,version,cpuinfo
   !integer,parameter:: complex_kind=compiler_kind
-  real(dp):: lower_X=-2.0
-  real(dp):: upper_X=0.5
+  real(dp):: lower_X=-1.9
+  real(dp):: upper_X=0.6
   real(dp):: lower_Y=-1.25
   real(dp):: upper_Y=1.25
   complex(dp),dimension(:),allocatable :: roots
@@ -200,6 +201,7 @@ contains
     write(stdout,*)
 2001 format(1x,A37,5x,':',A15)   !Format for Characters
 2002 format(1x,A37,5x,':',i15)   !Format for integer parameters
+2012 format(1x,A25,5x,':',i6,' x ',i6)   !Format for integer parameters
 2003 format(1x,A37,5x,':',f15.2) !Format for real parameters
 2004 format(1x,A37,5x,':',ES15.2)!Format for scientific paramteters
 2005 format(1x,A37,5x,':',F8.3,SP,F6.3,"i")
@@ -247,7 +249,7 @@ contains
     write(stdout,2006)"------------ Image Parameters ------------"
     write(stdout,*)	
 
-    write(stdout,2002)"No. Grid points",N
+    write(stdout,2012)"No. Grid points",N,Ny
     if (zoom)then
        write(stdout,2003)"Zoom Factor",zoom_factor
        write(stdout,2005)"Zoom Centre",centre
@@ -636,6 +638,12 @@ contains
        roots(2)=exp(cmplx_i*2.0_dp*pi*1.0_dp/3.0_dp)
        roots(3)=exp(cmplx_i*2.0_dp*pi*2.0_dp/3.0_dp)
     end if
+
+    ! Define the N and Ny
+    dx=(upper_x-lower_x)/real(N,dp)
+    Ny=int((upper_y-lower_y)/dx)
+
+    
     call trace_exit("IO_READ_PARAMETERS")
 
     if (zoom.and.debug) max_iter=max_iter+zoom_factor
