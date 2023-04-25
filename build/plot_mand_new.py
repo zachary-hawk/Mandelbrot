@@ -12,6 +12,8 @@ parser.add_argument("-c",help="The plotting color map")
 parser.add_argument('-r',help='rotate',action='store_true')
 parser.add_argument('--dpi',help='DPI',default=300,type=int)
 parser.add_argument('-ty',help='trim y',default = 0,type=float)
+parser.add_argument('-D',help='Distribution',action='store_true')
+parser.add_argument('--cap',default=None,type=int )
 
 args = parser.parse_args()
 name=args.name
@@ -19,6 +21,10 @@ c=args.c
 rotate=args.r
 dpi=args.dpi
 sy=args.ty
+cap=args.cap
+dist=args.D
+
+
 
 
 
@@ -46,15 +52,22 @@ data = data[:,int(trim_n/2):int(ny-trim_n/2)]
 
 
 
+
+if dist:
+    fig, ax = plt.subplots(figsize=(6,6))
+    ax.hist(data.flatten(),bins=int(np.max(data)))
+    plt.show()
+
+
+if cap is not None:
+    data[np.where(data>cap)]=cap
+
+    
 if rotate:
     data=np.transpose(data)
     fix, ax = plt.subplots(figsize=(16.7*ny/n,16.7))
 else:
     fix, ax = plt.subplots(figsize=(16.7*ny/n,16.7))
-
-
-
-
 
 
 ax.imshow(data,origin='lower', cmap=c,aspect='auto')

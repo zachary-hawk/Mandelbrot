@@ -329,7 +329,9 @@ program Mandelbrot
            elseif(do_rational)then
               z=julia_const
               k=fractal_rational(Max_iter,z,c,e_default,e_rational,lambda)
-
+           elseif (do_collatz) then
+              z=c
+              k=fractal_collatz(Max_iter,z,c,e_default)
            else
               z=cmplx_0
               

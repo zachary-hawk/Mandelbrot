@@ -53,6 +53,7 @@ module IO
   logical          :: do_rational
   logical          :: debug=.false.
   logical          :: zoom=.false.
+  logical          :: do_collatz
   complex          :: julia_const=(0.285,0.01)
   character(81)    :: parser_version="Mandelbrot v.3.0, Z.Hawkhead" 
   character(100)   :: info="Parallel code for calculating the Mandelbrot Set"
@@ -227,6 +228,8 @@ contains
        write(stdout,2001) "Calculation Type","Rational"
     elseif (newt_for_carrying)then
        write(stdout,2001) "Calculation Type","Newton"
+    elseif (do_collatz) then
+       write(stdout,2001) "Calculation Type","Collatz"
     else
        write(stdout,2001) "Calculation Type","Mandelbrot"
     endif
@@ -557,9 +560,12 @@ contains
              elseif(val.eq."nova")then
                 do_nova=.TRUE.
                 do_mandelbrot=.false.
-             elseif(val.eq."rational")then
+             elseif(val.eq."rational")then               
                 do_rational=.TRUE.
                 do_mandelbrot=.false.
+             elseif (val.eq."collatz")then
+                do_collatz  = .true.
+                do_mandelbrot = .false.
              elseif(val.eq."mandelbrot")then
                 b_for_carrying=.FALSE.
                 j_for_carrying=.FALSE.

@@ -876,4 +876,91 @@ contains
     call trace_exit('fractal_comb')
   end subroutine comb
 
+
+
+    function fractal_collatz(Max_iter,z,c,e) result(k_real)
+    !==============================================================================!
+    !                               C O L L A T Z                                  !
+    !==============================================================================!
+    ! Formula for calculating the Mandelbrot set fractal.                          !
+    !------------------------------------------------------------------------------!
+    ! Arguments:                                                                   !
+    !           Max_iter,          intent :: in                                    !
+    !           z,                 intent :: in                                    !
+    !           c,                 intent :: in                                    !
+    !           e,                 intent :: in                                    !
+    !------------------------------------------------------------------------------!
+    ! Result:                                                                      !
+    !           k_real                                                             !
+    !------------------------------------------------------------------------------!
+    ! Author:   Z. Hawkhead  16/08/2019                                            !
+    !==============================================================================!
+    implicit none
+    integer,intent(in)::Max_iter 
+    complex(dp)::z,c,z_old=(0,0),dir
+    integer :: k,m=0
+    real(dp) :: e,z_cum=0,k_real,z_cum_old,d
+    !call trace_entry("FRACTAL_MAND")
+    k_real=0.0_dp
+    dir=(0,0)
+    if (e.EQ.int(e))then 
+       do k=1,Max_iter
+          z_old=z
+
+          z = 0.25_dp * (2.0_dp + 7.0_dp * z - (2.0_dp + 5.0_dp * z ) * cos(z*pi))
+          
+          if (triangle)then
+             z_cum_old=z_cum
+             call colour_triangle_ineq(z,c,z_old,z_cum,k)
+          elseif (ave_an)then
+             call colour_ave_angle(z,k_real)
+          else if(light)then
+             call colour_light(z,k_real,k,dir)
+          else if (exponential)then
+             call colour_exponential(z,k_real)
+          end if
+          if (abs(z).gt.bail_out) then
+             exit
+          end if
+       end do
+    else
+       do k=0,Max_iter
+          z_old=z
+
+          z = 0.25_dp * (2.0_dp + 7.0_dp * z - (2.0_dp + 5.0_dp * z ) * cos(z*pi))
+          if (triangle)then
+             z_cum_old=z_cum
+             call colour_triangle_ineq(z,c,z_old,z_cum,k)
+          elseif (ave_an)then
+             call colour_ave_angle(z,k_real)
+          else if (exponential)then
+             call colour_exponential(z,k_real)
+          end if
+          if (abs(z).gt.bail_out) then
+             exit
+          end if
+       end do
+    end if
+
+    if (triangle)then
+       call colour_smooth_iter(k,z,d)
+       d=d-int(d)
+       k_real=real(d,dp)*z_cum+(1.0_dp-real(d,dp))*z_cum_old
+       if (isnan(k_real))k_real=0.0_dp
+       if (k.gt.max_iter-1)k_real=0.0_dp
+       z_cum=0
+
+    elseif(ave_an)then 
+       k_real=k_real/real(k)
+    else if(simple_set)then
+       call colour_set(k,k_real)
+    elseif(smooth)then
+       call colour_smooth_iter(k,z,k_real)
+    end if
+
+
+    !call trace_exit("FRACTAL_MAND")
+  end function fractal_collatz
+
+
 end module fractal
